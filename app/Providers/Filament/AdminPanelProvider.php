@@ -31,7 +31,7 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->brandName('Portfolio Admin')
             ->colors([
-                'primary' => Color::Cyan,
+                'primary' => Color::Red,
             ])
             ->navigationItems([
                 NavigationItem::make('Lihat Portfolio')

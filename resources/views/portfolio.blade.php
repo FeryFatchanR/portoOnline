@@ -25,33 +25,29 @@
     <meta name="description" content="{{ $profile->description ?: $headline }}">
     <meta property="og:title" content="{{ $name }}">
     <meta property="og:description" content="{{ $headline }}">
-    <meta name="color-scheme" content="light dark">
-    <script>
-        try {
-            var t = localStorage.getItem('theme');
-            if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
-        } catch (e) {}
-    </script>
+    <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#D3221A">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Schibsted+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
     <style>
         /* Layout: portfolio pribadi bergaya website company profile — header sticky, hero lebar, section penuh berselang warna, kartu, CTA band, footer. */
         :root {
-            --bg: #F5F7F6;
-            --bg-alt: #ECF1EF;
+            /* Palet terang merah-putih (aksen terinspirasi warna korporat telekomunikasi) */
+            --bg: #FFFFFF;
+            --bg-alt: #F5F6F8;
             --surface: #FFFFFF;
-            --ink: #0F1618;
-            --muted: #56636A;
-            --line: #DAE1DF;
-            --accent: #0A7563;
-            --accent-strong: #075E4F;
+            --ink: #1C2128;
+            --muted: #5F6774;
+            --line: #E4E7EC;
+            --accent: #D3221A;
+            --accent-strong: #AE1A14;
             --accent-ink: #FFFFFF;
-            --accent-soft: #DCEFEA;
-            --band: #0B2B26;
-            --band-ink: #E8F4F1;
-            --band-muted: #A5C4BC;
-            --ok: #1C8A4B;
+            --accent-soft: #FDECEB;
+            --band: #D3221A;
+            --band-ink: #FFFFFF;
+            --band-muted: #FFDCD9;
+            --ok: #1E9E57;
 
             --font-display: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
             --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -67,42 +63,6 @@
             --radius: 14px;
             --wrap: 1180px;
             color-scheme: light;
-        }
-        @media (prefers-color-scheme: dark) {
-            :root:not([data-theme="light"]) {
-                --bg: #0C1012;
-                --bg-alt: #101619;
-                --surface: #151C1F;
-                --ink: #E6ECEA;
-                --muted: #97A4A3;
-                --line: #253034;
-                --accent: #3FC6AA;
-                --accent-strong: #63D6BD;
-                --accent-ink: #04201A;
-                --accent-soft: #11302A;
-                --band: #10302A;
-                --band-ink: #E8F4F1;
-                --band-muted: #A5C4BC;
-                --ok: #4ADE80;
-                color-scheme: dark;
-            }
-        }
-        :root[data-theme="dark"] {
-            --bg: #0C1012;
-            --bg-alt: #101619;
-            --surface: #151C1F;
-            --ink: #E6ECEA;
-            --muted: #97A4A3;
-            --line: #253034;
-            --accent: #3FC6AA;
-            --accent-strong: #63D6BD;
-            --accent-ink: #04201A;
-            --accent-soft: #11302A;
-            --band: #10302A;
-            --band-ink: #E8F4F1;
-            --band-muted: #A5C4BC;
-            --ok: #4ADE80;
-            color-scheme: dark;
         }
 
         *, *::before, *::after { box-sizing: border-box; }
@@ -134,7 +94,7 @@
         .actions { display: flex; flex-wrap: wrap; gap: 12px; }
 
         /* ---------- Header ---------- */
-        .site-header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--line); }
+        .site-header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: color-mix(in srgb, var(--bg) 94%, transparent); box-shadow: 0 1px 0 var(--line), 0 6px 20px -16px rgb(16 24 40 / .25); backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--line); }
         .header-row { display: flex; align-items: center; gap: 24px; min-height: 68px; }
         .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; min-width: 0; margin-right: auto; }
         .brand-mark { width: 36px; height: 36px; border-radius: 9px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 0.8125rem; letter-spacing: 0.02em; flex: none; }
@@ -151,7 +111,7 @@
         .mobile-nav a { display: block; padding: 12px 4px; text-decoration: none; font-weight: 500; border-bottom: 1px solid var(--line); }
 
         /* ---------- Hero ---------- */
-        .hero { padding-block: clamp(56px, 8vw, 104px) clamp(40px, 5vw, 64px); }
+        .hero { padding-block: clamp(56px, 8vw, 104px) clamp(40px, 5vw, 64px); background: radial-gradient(1200px 480px at 85% -10%, var(--accent-soft), transparent 70%), var(--bg); }
         .hero-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: clamp(32px, 5vw, 72px); align-items: center; }
         .hero-copy { display: flex; flex-direction: column; gap: 24px; }
         .status { display: inline-flex; align-items: center; gap: 8px; font-size: var(--step--1); font-weight: 600; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; align-self: flex-start; }
@@ -245,7 +205,7 @@
         .cta .btn { background: transparent; color: var(--band-ink); border-color: color-mix(in srgb, var(--band-ink) 30%, transparent); }
         .cta .btn:hover { border-color: var(--band-ink); }
         .cta .btn-primary { background: var(--band-ink); color: var(--band); border-color: var(--band-ink); }
-        .cta .btn-primary:hover { background: #FFFFFF; }
+        .cta .btn-primary:hover { background: var(--accent-soft); border-color: var(--accent-soft); }
         .contact-list { margin: 0; display: flex; flex-direction: column; }
         .contact-list div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; padding-block: 14px; border-top: 1px solid color-mix(in srgb, var(--band-ink) 16%, transparent); }
         .contact-list div:first-child { border-top: 0; }
@@ -290,9 +250,6 @@
                 @endforeach
             </nav>
             <div class="header-actions">
-                <button type="button" class="icon-btn" id="theme-toggle" aria-label="Ganti tema" title="Tema: Otomatis">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/></svg>
-                </button>
                 <a class="btn btn-primary header-cta" href="#kontak">Hubungi saya</a>
                 <button type="button" class="icon-btn menu-btn" id="menu-toggle" aria-expanded="false" aria-controls="mobile-nav" aria-label="Buka menu">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
@@ -581,24 +538,6 @@
 
 <script>
     (function () {
-        var root = document.documentElement;
-        var themeBtn = document.getElementById('theme-toggle');
-        var names = { system: 'Otomatis', light: 'Terang', dark: 'Gelap' };
-        var order = ['system', 'light', 'dark'];
-        function current() { return root.dataset.theme || 'system'; }
-        function render() {
-            var label = 'Tema: ' + names[current()];
-            themeBtn.title = label;
-            themeBtn.setAttribute('aria-label', label + ' (klik untuk ganti)');
-        }
-        themeBtn.addEventListener('click', function () {
-            var next = order[(order.indexOf(current()) + 1) % order.length];
-            if (next === 'system') { delete root.dataset.theme; } else { root.dataset.theme = next; }
-            try { next === 'system' ? localStorage.removeItem('theme') : localStorage.setItem('theme', next); } catch (e) {}
-            render();
-        });
-        render();
-
         var menuBtn = document.getElementById('menu-toggle');
         var mobileNav = document.getElementById('mobile-nav');
         function setMenu(open) { mobileNav.hidden = !open; menuBtn.setAttribute('aria-expanded', String(open)); }
