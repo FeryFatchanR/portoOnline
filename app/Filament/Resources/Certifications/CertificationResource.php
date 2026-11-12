@@ -23,7 +23,7 @@ class CertificationResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Konten Website';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 8;
 
     protected static ?string $modelLabel = 'Sertifikasi';
 

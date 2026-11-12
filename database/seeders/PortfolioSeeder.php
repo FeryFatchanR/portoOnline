@@ -8,7 +8,6 @@ use App\Models\Experience;
 use App\Models\Organization;
 use App\Models\Profile;
 use App\Models\Project;
-use App\Models\Service;
 use App\Models\Skill;
 use App\Models\Stat;
 use Illuminate\Database\Eloquent\Model;
@@ -24,7 +23,6 @@ class PortfolioSeeder extends Seeder
     public function run(): void
     {
         $this->seedProjects();
-        $this->seedServices();
 
         if (Profile::query()->exists()) {
             $this->command?->warn('Data portfolio sudah ada, seeder dilewati.');
@@ -35,8 +33,7 @@ class PortfolioSeeder extends Seeder
         DB::transaction(function () {
             Profile::create([
                 'logo_text' => 'MFR',
-                'tagline' => 'Solusi website, jaringan, dan keamanan IT untuk bisnis Anda',
-                'services_subtitle' => 'Dari membangun sistem informasi sampai menyiapkan jaringan kantor yang aman dan stabil.',
+                'tagline' => 'Membangun aplikasi web dan jaringan yang andal dan aman',
                 'name' => "Muh. Fery\nFatchan Rizqi",
                 'badge_text' => '✦ Available for Work',
                 'subtitle' => 'IT Professional | Web Developer | Security Specialist',
@@ -123,38 +120,6 @@ class PortfolioSeeder extends Seeder
                 ['name' => 'Classical Cryptography for Beginner Course', 'icon' => '🔐', 'score' => '80.00'],
             ]);
         });
-    }
-
-    private function seedServices(): void
-    {
-        if (Service::query()->exists()) {
-            return;
-        }
-
-        $services = [
-            [
-                'title' => 'Pembuatan Website & Aplikasi',
-                'icon' => 'code',
-                'description' => 'Website company profile, sistem informasi, dan dashboard laporan yang dirancang sesuai alur kerja bisnis Anda.',
-                'features' => ['Website company profile & landing page', 'Sistem informasi berbasis Laravel', 'Dashboard & laporan real-time', 'Pemeliharaan dan pengembangan lanjutan'],
-            ],
-            [
-                'title' => 'Instalasi & Manajemen Jaringan',
-                'icon' => 'network',
-                'description' => 'Perencanaan dan instalasi jaringan kantor, dari kabel fiber optic sampai konfigurasi router dan WiFi.',
-                'features' => ['Instalasi fiber optic & LAN', 'Konfigurasi router MikroTik', 'Segmentasi jaringan (VLAN) & WiFi kantor', 'Troubleshooting dan maintenance berkala'],
-            ],
-            [
-                'title' => 'Keamanan Sistem IT',
-                'icon' => 'shield',
-                'description' => 'Pemeriksaan dan penguatan keamanan server, jaringan, dan aplikasi untuk mengurangi risiko gangguan dan kebocoran data.',
-                'features' => ['Audit konfigurasi keamanan', 'Hardening server & firewall', 'Strategi backup dan pemulihan', 'Pendampingan penanganan insiden'],
-            ],
-        ];
-
-        foreach ($services as $index => $service) {
-            Service::create($service + ['sort_order' => $index + 1, 'is_visible' => true]);
-        }
     }
 
     /** Proyek diisi terpisah agar instalasi lama yang sudah punya profil tetap mendapat contoh proyek. */

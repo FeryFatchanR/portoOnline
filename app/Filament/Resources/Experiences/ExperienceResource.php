@@ -19,11 +19,11 @@ class ExperienceResource extends Resource
 {
     protected static ?string $model = Experience::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClock;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBriefcase;
 
     protected static string|UnitEnum|null $navigationGroup = 'Konten Website';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $modelLabel = 'Pengalaman Kerja';
 

@@ -31,9 +31,9 @@ class EditPortfolioProfile extends Page
 
     protected static ?int $navigationSort = 1;
 
-    protected static ?string $navigationLabel = 'Profil Usaha & Kontak';
+    protected static ?string $navigationLabel = 'Profil & Kontak';
 
-    protected static ?string $title = 'Profil Usaha & Kontak';
+    protected static ?string $title = 'Profil & Kontak';
 
     protected static ?string $slug = 'profile';
 
@@ -51,23 +51,7 @@ class EditPortfolioProfile extends Page
             ->model(Profile::current())
             ->statePath('data')
             ->components([
-                Section::make('Identitas usaha')
-                    ->description('Kosongkan nama usaha jika ingin memakai nama Anda sendiri sebagai brand.')
-                    ->columns(2)
-                    ->schema([
-                        TextInput::make('company_name')->label('Nama usaha / brand')->maxLength(255)->placeholder('mis. MFR Tech Solutions'),
-                        TextInput::make('tagline')->label('Tagline (judul besar di halaman depan)')->maxLength(255),
-                        FileUpload::make('logo_path')
-                            ->label('Logo')
-                            ->image()
-                            ->acceptedFileTypes(['image/png', 'image/webp', 'image/jpeg'])
-                            ->maxSize(1024)
-                            ->disk('public')
-                            ->directory('brand')
-                            ->visibility('public')
-                            ->helperText('PNG/WebP transparan disarankan, maks. 1 MB. Jika kosong, dipakai teks logo.'),
-                    ]),
-                Section::make('Pemilik / pendiri')
+                Section::make('Hero / About')
                     ->columns(2)
                     ->schema([
                         Textarea::make('name')
@@ -75,6 +59,11 @@ class EditPortfolioProfile extends Page
                             ->helperText('Tekan Enter untuk memecah nama menjadi dua baris.')
                             ->required()->rows(2)->maxLength(255),
                         TextInput::make('logo_text')->label('Teks logo (navbar)')->required()->maxLength(10),
+                        TextInput::make('tagline')
+                            ->label('Judul utama halaman')
+                            ->helperText('Kalimat besar di bagian atas. Jika kosong, dipakai subjudul.')
+                            ->maxLength(255)
+                            ->columnSpanFull(),
                         TextInput::make('badge_text')->label('Badge')->maxLength(255),
                         TextInput::make('subtitle')->label('Subjudul')->maxLength(255),
                         Textarea::make('description')->label('Deskripsi singkat')->rows(4)->maxLength(2000)->columnSpanFull(),
@@ -121,8 +110,6 @@ class EditPortfolioProfile extends Page
                     ->columns(2)
                     ->collapsed()
                     ->schema([
-                        TextInput::make('services_subtitle')->label('Layanan')->maxLength(255),
-                        TextInput::make('team_subtitle')->label('Tim')->maxLength(255),
                         TextInput::make('skills_subtitle')->label('Skills')->maxLength(255),
                         TextInput::make('experience_subtitle')->label('Pengalaman kerja')->maxLength(255),
                         TextInput::make('projects_subtitle')->label('Proyek')->maxLength(255),

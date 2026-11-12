@@ -66,4 +66,23 @@ class PortfolioPageTest extends TestCase
 
         $this->assertSame(9, $skill->sort_order);
     }
+
+    public function test_page_is_personal_not_company(): void
+    {
+        $this->seed(PortfolioSeeder::class);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('Membangun aplikasi web dan jaringan yang andal dan aman')
+            ->assertSee('Hubungi saya')
+            ->assertDontSee('Layanan')
+            ->assertDontSee(' kami');
+    }
+
+    public function test_headline_falls_back_to_subtitle(): void
+    {
+        Profile::current()->update(['tagline' => null, 'subtitle' => 'Network Engineer']);
+
+        $this->get('/')->assertOk()->assertSee('<h1>Network Engineer</h1>', false);
+    }
 }

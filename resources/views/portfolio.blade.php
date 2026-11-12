@@ -1,17 +1,18 @@
 @php
-    $person = $profile->singleLineName();
-    $brand = $profile->brandName();
-    $mark = $profile->logo_text ?: collect(explode(' ', $brand))->map(fn ($w) => mb_substr($w, 0, 1))->take(3)->implode('');
-    $headline = $profile->tagline ?: ($profile->subtitle ?: $brand);
-    $clients = $experiences->pluck('company')
+    $name = $profile->singleLineName();
+    $mark = $profile->logo_text ?: collect(explode(' ', $name))->map(fn ($w) => mb_substr($w, 0, 1))->take(3)->implode('');
+    $headline = $profile->tagline ?: ($profile->subtitle ?: $name);
+    $roles = collect(preg_split('/\s*\|\s*/', (string) $profile->subtitle))->filter()->values();
+    $workplaces = $experiences->pluck('company')
         ->map(fn ($c) => trim(explode(' - ', $c)[0]))
         ->merge($organizations->pluck('organization'))
         ->filter()->unique()->values();
     $nav = array_filter([
-        'layanan' => $services->isNotEmpty() ? 'Layanan' : null,
-        'proyek' => $projects->isNotEmpty() ? 'Proyek' : null,
         'tentang' => 'Tentang',
-        'tim' => $team->isNotEmpty() ? 'Tim' : null,
+        'pengalaman' => $experiences->isNotEmpty() || $organizations->isNotEmpty() ? 'Pengalaman' : null,
+        'proyek' => $projects->isNotEmpty() ? 'Proyek' : null,
+        'keahlian' => $skills->isNotEmpty() ? 'Keahlian' : null,
+        'pendidikan' => $educations->isNotEmpty() || $certifications->isNotEmpty() ? 'Pendidikan' : null,
         'kontak' => 'Kontak',
     ]);
 @endphp
@@ -20,9 +21,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>{{ $brand }}{{ $profile->tagline ? ' · '.$profile->tagline : '' }}</title>
+    <title>{{ $name }} · Portfolio</title>
     <meta name="description" content="{{ $profile->description ?: $headline }}">
-    <meta property="og:title" content="{{ $brand }}">
+    <meta property="og:title" content="{{ $name }}">
     <meta property="og:description" content="{{ $headline }}">
     <meta name="color-scheme" content="light dark">
     <script>
@@ -35,11 +36,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Schibsted+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* Layout: company profile — header sticky, hero dua kolom (pesan + panel ringkasan), lalu layanan, proyek, tentang, tim, CTA, footer. */
+        /* Layout: portfolio pribadi bergaya website company profile — header sticky, hero lebar, section penuh berselang warna, kartu, CTA band, footer. */
         :root {
             --bg: #F5F7F6;
+            --bg-alt: #ECF1EF;
             --surface: #FFFFFF;
-            --surface-2: #EBF0EE;
             --ink: #0F1618;
             --muted: #56636A;
             --line: #DAE1DF;
@@ -70,8 +71,8 @@
         @media (prefers-color-scheme: dark) {
             :root:not([data-theme="light"]) {
                 --bg: #0C1012;
-                --surface: #141A1D;
-                --surface-2: #192124;
+                --bg-alt: #101619;
+                --surface: #151C1F;
                 --ink: #E6ECEA;
                 --muted: #97A4A3;
                 --line: #253034;
@@ -88,8 +89,8 @@
         }
         :root[data-theme="dark"] {
             --bg: #0C1012;
-            --surface: #141A1D;
-            --surface-2: #192124;
+            --bg-alt: #101619;
+            --surface: #151C1F;
             --ink: #E6ECEA;
             --muted: #97A4A3;
             --line: #253034;
@@ -105,7 +106,7 @@
         }
 
         *, *::before, *::after { box-sizing: border-box; }
-        html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+        html { scroll-behavior: smooth; scroll-padding-top: 76px; }
         @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition: none !important; } }
         body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: var(--step-0); line-height: 1.6; -webkit-font-smoothing: antialiased; }
         body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--bg); }
@@ -115,11 +116,12 @@
         h1, h2, h3 { font-family: var(--font-display); line-height: 1.12; margin: 0; text-wrap: balance; }
         p { margin: 0; }
         ul { margin: 0; padding: 0; list-style: none; }
+        .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
         .wrap { max-width: var(--wrap); margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
         .section { padding-block: clamp(64px, 9vw, 112px); }
-        .section + .section { border-top: 1px solid var(--line); }
-        .section-head { display: flex; flex-direction: column; gap: 12px; max-width: 640px; margin-bottom: 48px; }
+        .section.alt { background: var(--bg-alt); border-block: 1px solid var(--line); }
+        .section-head { display: flex; flex-direction: column; gap: 12px; max-width: 660px; margin-bottom: 48px; }
         .kicker { font-size: var(--step--1); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
         .section-head h2 { font-size: var(--step-3); font-weight: 700; letter-spacing: -0.015em; }
         .section-head p { color: var(--muted); font-size: var(--step-1); }
@@ -129,17 +131,17 @@
         .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
         .btn-primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
         .btn svg { width: 18px; height: 18px; flex: none; }
+        .actions { display: flex; flex-wrap: wrap; gap: 12px; }
 
         /* ---------- Header ---------- */
         .site-header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--line); }
         .header-row { display: flex; align-items: center; gap: 24px; min-height: 68px; }
         .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; min-width: 0; margin-right: auto; }
-        .brand img { height: 36px; width: auto; }
         .brand-mark { width: 36px; height: 36px; border-radius: 9px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 0.8125rem; letter-spacing: 0.02em; flex: none; }
         .brand-name { font-family: var(--font-display); font-weight: 700; font-size: 1.0625rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .nav { display: flex; gap: 4px; }
+        .nav { display: flex; gap: 2px; }
         .nav a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 0.9375rem; padding: 8px 12px; border-radius: 8px; transition: color .15s, background-color .15s; }
-        .nav a:hover { color: var(--ink); background: var(--surface-2); }
+        .nav a:hover { color: var(--ink); background: var(--bg-alt); }
         .header-actions { display: flex; align-items: center; gap: 8px; }
         .icon-btn { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); display: inline-grid; place-items: center; cursor: pointer; }
         .icon-btn:hover { color: var(--ink); border-color: var(--muted); }
@@ -149,106 +151,102 @@
         .mobile-nav a { display: block; padding: 12px 4px; text-decoration: none; font-weight: 500; border-bottom: 1px solid var(--line); }
 
         /* ---------- Hero ---------- */
-        .hero { padding-block: clamp(56px, 8vw, 104px) clamp(48px, 6vw, 80px); }
-        .hero-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: clamp(32px, 5vw, 72px); align-items: center; }
+        .hero { padding-block: clamp(56px, 8vw, 104px) clamp(40px, 5vw, 64px); }
+        .hero-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: clamp(32px, 5vw, 72px); align-items: center; }
         .hero-copy { display: flex; flex-direction: column; gap: 24px; }
         .status { display: inline-flex; align-items: center; gap: 8px; font-size: var(--step--1); font-weight: 600; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; align-self: flex-start; }
         .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
         .hero h1 { font-size: var(--step-4); font-weight: 800; letter-spacing: -0.025em; }
+        .hero-name { font-size: var(--step-1); color: var(--ink); font-weight: 600; }
+        .hero-name span { color: var(--muted); font-weight: 400; }
         .hero-lead { font-size: var(--step-1); color: var(--muted); max-width: 56ch; }
-        .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 
-        .summary { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 24px; box-shadow: 0 1px 2px rgb(0 0 0 / .04), 0 18px 40px -24px rgb(0 0 0 / .18); }
-        .summary-person { display: flex; align-items: center; gap: 16px; }
-        .avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: var(--accent-soft); flex: none; }
-        .avatar-fallback { display: grid; place-items: center; color: var(--accent); font-family: var(--font-display); font-weight: 800; }
-        .summary-person strong { display: block; font-family: var(--font-display); font-size: var(--step-1); line-height: 1.25; }
-        .summary-person span { color: var(--muted); font-size: 0.9375rem; }
-        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border-radius: 12px; overflow: hidden; border: 1px solid var(--line); margin: 0; }
-        .stats div { background: var(--surface); padding: 16px; display: flex; flex-direction: column-reverse; gap: 2px; }
+        .profile-card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; box-shadow: 0 1px 2px rgb(0 0 0 / .04), 0 18px 40px -24px rgb(0 0 0 / .18); }
+        .profile-photo { width: 100%; aspect-ratio: 5 / 4; object-fit: cover; background: var(--accent-soft); }
+        .profile-fallback { width: 100%; aspect-ratio: 5 / 4; display: grid; place-items: center; background: linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 28px, var(--accent-soft); font-family: var(--font-display); font-weight: 800; font-size: clamp(3rem, 6vw, 4.5rem); color: var(--accent); }
+        .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; }
+        .stats div { padding: 18px 20px; display: flex; flex-direction: column-reverse; gap: 2px; border-top: 1px solid var(--line); }
+        .stats div:nth-child(odd) { border-right: 1px solid var(--line); }
         .stats dt { font-size: var(--step--1); color: var(--muted); }
         .stats dd { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: var(--step-3); line-height: 1; letter-spacing: -0.02em; }
 
-        .clients { margin-top: clamp(48px, 6vw, 72px); display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; padding-top: 28px; border-top: 1px solid var(--line); }
-        .clients-label { font-size: var(--step--1); color: var(--muted); font-weight: 500; }
-        .clients ul { display: flex; flex-wrap: wrap; gap: 12px 32px; }
-        .clients li { font-family: var(--font-display); font-weight: 700; font-size: var(--step-1); color: var(--muted); }
+        .workplaces { margin-top: clamp(40px, 5vw, 64px); display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; padding-top: 28px; border-top: 1px solid var(--line); }
+        .workplaces-label { font-size: var(--step--1); color: var(--muted); font-weight: 500; }
+        .workplaces ul { display: flex; flex-wrap: wrap; gap: 12px 32px; }
+        .workplaces li { font-family: var(--font-display); font-weight: 700; font-size: var(--step-1); color: var(--muted); }
 
-        /* ---------- Layanan ---------- */
-        .services { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 20px; }
-        .service { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; display: flex; flex-direction: column; gap: 14px; transition: border-color .15s; }
-        .service:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
-        .service-icon { width: 48px; height: 48px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; }
-        .service-icon svg { width: 24px; height: 24px; }
-        .service h3 { font-size: var(--step-2); font-weight: 700; letter-spacing: -0.01em; }
-        .service > p { color: var(--muted); }
-        .checks { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; padding-top: 16px; border-top: 1px solid var(--line); }
-        .checks li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; font-size: 0.9375rem; }
-        .checks svg { width: 18px; height: 18px; color: var(--accent); margin-top: 3px; }
+        /* ---------- Tentang ---------- */
+        .about-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: clamp(32px, 5vw, 72px); align-items: start; }
+        .about-text { display: flex; flex-direction: column; gap: 20px; }
+        .about-text p { font-size: var(--step-1); color: var(--muted); max-width: 60ch; }
+        .roles { display: flex; flex-wrap: wrap; gap: 8px; }
+        .roles li { padding: 6px 14px; border-radius: 999px; background: var(--accent-soft); color: var(--ink); font-weight: 500; font-size: 0.9375rem; }
+        .facts { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); margin: 0; }
+        .facts div { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 16px; padding: 16px 20px; border-top: 1px solid var(--line); }
+        .facts div:first-child { border-top: 0; }
+        .facts dt { color: var(--muted); font-size: var(--step--1); padding-top: 2px; }
+        .facts dd { margin: 0; overflow-wrap: anywhere; font-weight: 500; }
+        .facts a { text-decoration: none; }
+        .facts a:hover { color: var(--accent); }
+
+        /* ---------- Pengalaman ---------- */
+        .timeline { display: flex; flex-direction: column; gap: 16px; }
+        .job { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px 28px; display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 8px 32px; }
+        .job-when { display: flex; flex-direction: column; gap: 4px; }
+        .job-when .num { font-size: var(--step--1); color: var(--muted); }
+        .job-when span:last-child { font-size: var(--step--1); color: var(--muted); }
+        .job h3 { font-size: var(--step-2); font-weight: 700; letter-spacing: -0.01em; }
+        .job-org { color: var(--accent); font-weight: 600; margin-top: 4px; }
+        .job p { color: var(--muted); margin-top: 10px; max-width: 70ch; }
+        .subhead { font-family: var(--font-display); font-size: var(--step-2); font-weight: 700; margin: 48px 0 16px; }
 
         /* ---------- Proyek ---------- */
         .projects { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 24px; }
         .project { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
-        .project-media { aspect-ratio: 16 / 10; width: 100%; object-fit: cover; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+        .project-media { aspect-ratio: 16 / 10; width: 100%; object-fit: cover; background: var(--bg-alt); border-bottom: 1px solid var(--line); }
         .project-placeholder { aspect-ratio: 16 / 10; display: grid; place-items: center; background: linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 24px, var(--accent-soft); border-bottom: 1px solid var(--line); font-family: var(--font-display); font-weight: 800; font-size: 2.75rem; color: var(--accent); }
         .project-body { padding: 24px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
         .project-meta { font-family: var(--font-mono); font-size: var(--step--1); color: var(--muted); }
         .project h3 { font-size: var(--step-2); font-weight: 700; }
         .project p { color: var(--muted); }
         .tags { display: flex; flex-wrap: wrap; gap: 6px; }
-        .tags li { font-family: var(--font-mono); font-size: 0.75rem; padding: 4px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); }
+        .tags li { font-family: var(--font-mono); font-size: 0.75rem; padding: 4px 10px; border-radius: 999px; background: var(--bg-alt); border: 1px solid var(--line); }
         .project-links { display: flex; gap: 20px; margin-top: auto; padding-top: 8px; }
         .project-links a { font-weight: 600; color: var(--accent); text-decoration: none; }
         .project-links a:hover { text-decoration: underline; text-underline-offset: 3px; }
 
-        /* ---------- Tentang ---------- */
-        .about-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(32px, 5vw, 80px); align-items: start; }
-        .founder { display: flex; flex-direction: column; gap: 20px; position: sticky; top: 100px; }
-        .founder-photo { width: 100%; max-width: 360px; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 18px; background: var(--accent-soft); }
-        .founder-fallback { width: 100%; max-width: 360px; aspect-ratio: 4 / 5; border-radius: 18px; display: grid; place-items: center; background: linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 28px, var(--accent-soft); font-family: var(--font-display); font-weight: 800; font-size: 4rem; color: var(--accent); }
-        .founder h3 { font-size: var(--step-2); }
-        .founder-role { color: var(--muted); }
-        .founder p { color: var(--muted); max-width: 52ch; }
-        .about-col { display: flex; flex-direction: column; gap: 40px; min-width: 0; }
-        .block-title { font-family: var(--font-display); font-size: var(--step-1); font-weight: 700; margin-bottom: 16px; }
-        .timeline li { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 4px 24px; padding-block: 16px; border-top: 1px solid var(--line); }
-        .timeline li:first-child { border-top: 0; padding-top: 0; }
-        .when { font-family: var(--font-mono); font-size: var(--step--1); color: var(--muted); padding-top: 3px; font-variant-numeric: tabular-nums; }
-        .timeline strong { font-weight: 600; display: block; }
-        .timeline .org { color: var(--accent); font-size: 0.9375rem; font-weight: 500; }
-        .timeline p { color: var(--muted); font-size: 0.9375rem; margin-top: 6px; }
-        .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-        .chips li { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 0.9375rem; font-weight: 500; }
-        .chips small { font-size: 0.75rem; color: var(--muted); font-weight: 400; }
-        .creds { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; }
-        .cred { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; }
-        .cred-type { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-        .cred strong { font-weight: 600; line-height: 1.35; }
-        .cred span { color: var(--muted); font-size: 0.9375rem; }
-        .cred .num { font-family: var(--font-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
-        .cred a { text-decoration: none; }
-        .cred a:hover { color: var(--accent); }
+        /* ---------- Keahlian ---------- */
+        .skills { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 16px; }
+        .skill { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+        .skill-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+        .skill h3 { font-family: var(--font-body); font-size: var(--step-0); font-weight: 600; }
+        .skill-level { font-size: var(--step--1); color: var(--muted); white-space: nowrap; }
+        .meter { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+        .meter i { height: 6px; border-radius: 3px; background: var(--line); }
+        .meter i.on { background: var(--accent); }
 
-        /* ---------- Tim ---------- */
-        .team { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 24px; }
-        .member { display: flex; flex-direction: column; gap: 12px; }
-        .member-photo { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius); background: var(--accent-soft); }
-        .member-fallback { width: 100%; aspect-ratio: 1; border-radius: var(--radius); background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 2.5rem; }
-        .member h3 { font-size: var(--step-1); }
-        .member span { color: var(--accent); font-weight: 500; font-size: 0.9375rem; }
-        .member p { color: var(--muted); font-size: 0.9375rem; }
-        .member a { font-size: 0.9375rem; font-weight: 600; color: var(--accent); text-decoration: none; }
+        /* ---------- Pendidikan ---------- */
+        .creds { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+        .cred { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; gap: 6px; }
+        .cred-type { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); font-weight: 600; }
+        .cred h3 { font-size: var(--step-1); font-weight: 700; line-height: 1.3; }
+        .cred h3 a { text-decoration: none; }
+        .cred h3 a:hover { color: var(--accent); }
+        .cred p { color: var(--muted); font-size: 0.9375rem; }
+        .cred-figure { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); display: flex; align-items: baseline; gap: 8px; }
+        .cred-figure strong { font-family: var(--font-mono); font-weight: 500; font-size: var(--step-2); font-variant-numeric: tabular-nums; }
+        .cred-figure span { color: var(--muted); font-size: var(--step--1); }
 
-        /* ---------- CTA & kontak ---------- */
+        /* ---------- Kontak ---------- */
         .cta { background: var(--band); color: var(--band-ink); border-radius: 24px; padding: clamp(32px, 6vw, 64px); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 40px; align-items: center; }
         .cta h2 { font-size: var(--step-3); font-weight: 800; letter-spacing: -0.015em; }
         .cta p { color: var(--band-muted); font-size: var(--step-1); margin-top: 12px; max-width: 46ch; }
-        .cta .hero-actions { margin-top: 28px; }
+        .cta .actions { margin-top: 28px; }
         .cta .btn { background: transparent; color: var(--band-ink); border-color: color-mix(in srgb, var(--band-ink) 30%, transparent); }
         .cta .btn:hover { border-color: var(--band-ink); }
         .cta .btn-primary { background: var(--band-ink); color: var(--band); border-color: var(--band-ink); }
         .cta .btn-primary:hover { background: #FFFFFF; }
-        .contact-list { margin: 0; display: flex; flex-direction: column; gap: 0; }
+        .contact-list { margin: 0; display: flex; flex-direction: column; }
         .contact-list div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; padding-block: 14px; border-top: 1px solid color-mix(in srgb, var(--band-ink) 16%, transparent); }
         .contact-list div:first-child { border-top: 0; }
         .contact-list dt { color: var(--band-muted); font-size: var(--step--1); padding-top: 2px; }
@@ -257,35 +255,24 @@
         .contact-list a:hover { text-decoration: underline; text-underline-offset: 3px; }
 
         /* ---------- Footer ---------- */
-        .site-footer { border-top: 1px solid var(--line); padding-block: 48px 40px; margin-top: clamp(64px, 9vw, 112px); }
-        .footer-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr)); gap: 32px; }
-        .footer-grid p, .footer-grid li { color: var(--muted); font-size: 0.9375rem; }
-        .footer-grid h3 { font-family: var(--font-body); font-size: var(--step--1); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 12px; }
-        .footer-grid ul { display: flex; flex-direction: column; gap: 8px; }
-        .footer-grid a { text-decoration: none; }
-        .footer-grid a:hover { color: var(--ink); }
-        .footer-brand { display: flex; flex-direction: column; gap: 14px; max-width: 40ch; }
-        .footer-bottom { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; color: var(--muted); font-size: var(--step--1); }
-        .footer-bottom a { text-decoration: none; }
-        .footer-bottom a:hover { color: var(--ink); }
+        .site-footer { border-top: 1px solid var(--line); padding-block: 40px; }
+        .footer-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px 32px; }
+        .footer-row p { color: var(--muted); font-size: var(--step--1); }
+        .footer-links { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+        .footer-links a { color: var(--muted); text-decoration: none; font-size: 0.9375rem; }
+        .footer-links a:hover { color: var(--ink); }
 
         @media (max-width: 960px) {
             .hero-grid, .about-grid, .cta { grid-template-columns: minmax(0, 1fr); }
-            .founder { position: static; flex-direction: row; align-items: flex-start; flex-wrap: wrap; }
-            .founder-photo, .founder-fallback { max-width: 200px; }
-            .footer-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-            .footer-brand { grid-column: 1 / -1; }
+            .profile-card { max-width: 480px; }
         }
-        @media (max-width: 860px) {
+        @media (max-width: 900px) {
             .nav, .header-cta { display: none; }
             .menu-btn { display: inline-grid; }
         }
-        @media (max-width: 560px) {
-            .timeline li { grid-template-columns: minmax(0, 1fr); }
-            .founder { flex-direction: column; }
-            .contact-list div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
-            .footer-grid { grid-template-columns: minmax(0, 1fr); }
-            .summary { padding: 20px; }
+        @media (max-width: 600px) {
+            .job { grid-template-columns: minmax(0, 1fr); padding: 20px; }
+            .facts div, .contact-list div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
         }
     </style>
 </head>
@@ -293,13 +280,9 @@
 <header class="site-header">
     <div class="wrap">
         <div class="header-row">
-            <a class="brand" href="#top" aria-label="{{ $brand }} — ke atas">
-                @if ($profile->logoUrl())
-                    <img src="{{ $profile->logoUrl() }}" alt="Logo {{ $brand }}" height="36">
-                @else
-                    <span class="brand-mark" aria-hidden="true">{{ $mark }}</span>
-                @endif
-                <span class="brand-name">{{ $brand }}</span>
+            <a class="brand" href="#top" aria-label="{{ $name }}, ke atas">
+                <span class="brand-mark" aria-hidden="true">{{ $mark }}</span>
+                <span class="brand-name">{{ $name }}</span>
             </a>
             <nav class="nav" aria-label="Navigasi utama">
                 @foreach ($nav as $id => $label)
@@ -310,7 +293,7 @@
                 <button type="button" class="icon-btn" id="theme-toggle" aria-label="Ganti tema" title="Tema: Otomatis">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/></svg>
                 </button>
-                <a class="btn btn-primary header-cta" href="#kontak">Hubungi kami</a>
+                <a class="btn btn-primary header-cta" href="#kontak">Hubungi saya</a>
                 <button type="button" class="icon-btn menu-btn" id="menu-toggle" aria-expanded="false" aria-controls="mobile-nav" aria-label="Buka menu">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
                 </button>
@@ -333,32 +316,29 @@
                         <span class="status">{{ trim($profile->badge_text, "✦ \t") }}</span>
                     @endif
                     <h1>{{ $headline }}</h1>
-                    @if ($profile->description)
-                        <p class="hero-lead">{{ $profile->description }}</p>
-                    @endif
-                    <div class="hero-actions">
+                    <p class="hero-name">{{ $name }}@if ($profile->subtitle && $profile->tagline)<span> · {{ $profile->subtitle }}</span>@endif</p>
+                    <div class="actions">
                         <a class="btn btn-primary" href="#kontak">
-                            Diskusikan kebutuhan Anda
+                            Hubungi saya
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
                         </a>
-                        @if ($services->isNotEmpty())
-                            <a class="btn" href="#layanan">Lihat layanan</a>
+                        @if ($profile->cvUrl())
+                            <a class="btn" href="{{ $profile->cvUrl() }}" download>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg>
+                                Unduh CV
+                            </a>
+                        @elseif (isset($nav['pengalaman']))
+                            <a class="btn" href="#pengalaman">Lihat pengalaman</a>
                         @endif
                     </div>
                 </div>
 
-                <aside class="summary" aria-label="Ringkasan">
-                    <div class="summary-person">
-                        @if ($profile->photoUrl())
-                            <img class="avatar" src="{{ $profile->photoUrl() }}" alt="Foto {{ $person }}" width="64" height="64">
-                        @else
-                            <span class="avatar avatar-fallback" aria-hidden="true">{{ $profile->logo_text ?: mb_substr($person, 0, 1) }}</span>
-                        @endif
-                        <div>
-                            <strong>{{ $person }}</strong>
-                            @if ($profile->subtitle)<span>{{ $profile->subtitle }}</span>@endif
-                        </div>
-                    </div>
+                <aside class="profile-card" aria-label="Ringkasan">
+                    @if ($profile->photoUrl())
+                        <img class="profile-photo" src="{{ $profile->photoUrl() }}" alt="Foto {{ $name }}" width="480" height="384">
+                    @else
+                        <div class="profile-fallback" aria-hidden="true">{{ $mark }}</div>
+                    @endif
                     @if ($stats->isNotEmpty())
                         <dl class="stats">
                             @foreach ($stats as $stat)
@@ -366,60 +346,100 @@
                             @endforeach
                         </dl>
                     @endif
-                    @if ($profile->cvUrl())
-                        <a class="btn" href="{{ $profile->cvUrl() }}" download>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg>
-                            Unduh CV
-                        </a>
-                    @endif
                 </aside>
             </div>
 
-            @if ($clients->isNotEmpty())
-                <div class="clients">
-                    <span class="clients-label">Berpengalaman bersama</span>
+            @if ($workplaces->isNotEmpty())
+                <div class="workplaces">
+                    <span class="workplaces-label">Pengalaman di</span>
                     <ul>
-                        @foreach ($clients as $client)<li>{{ $client }}</li>@endforeach
+                        @foreach ($workplaces as $place)<li>{{ $place }}</li>@endforeach
                     </ul>
                 </div>
             @endif
         </div>
     </section>
 
-    @if ($services->isNotEmpty())
-        <section class="section" id="layanan">
+    <section class="section alt" id="tentang">
+        <div class="wrap">
+            <div class="section-head">
+                <span class="kicker">Tentang saya</span>
+                <h2>Profil singkat</h2>
+            </div>
+            <div class="about-grid">
+                <div class="about-text">
+                    @if ($profile->description)<p>{{ $profile->description }}</p>@endif
+                    @if ($roles->isNotEmpty())
+                        <ul class="roles" aria-label="Peran">
+                            @foreach ($roles as $role)<li>{{ $role }}</li>@endforeach
+                        </ul>
+                    @endif
+                </div>
+                <dl class="facts">
+                    <div><dt>Nama</dt><dd>{{ $name }}</dd></div>
+                    @if ($profile->address)<div><dt>Domisili</dt><dd>{{ $profile->address }}</dd></div>@endif
+                    @if ($profile->email)<div><dt>Email</dt><dd><a href="mailto:{{ $profile->email }}">{{ $profile->email }}</a></dd></div>@endif
+                    @if ($profile->phone)<div><dt>Telepon</dt><dd><a class="num" href="tel:{{ $profile->phoneHref() }}">{{ $profile->phone }}</a></dd></div>@endif
+                    @if ($profile->linkedin_url)<div><dt>LinkedIn</dt><dd><a href="{{ $profile->linkedin_url }}" target="_blank" rel="noopener noreferrer">Lihat profil ↗</a></dd></div>@endif
+                </dl>
+            </div>
+        </div>
+    </section>
+
+    @if (isset($nav['pengalaman']))
+        <section class="section" id="pengalaman">
             <div class="wrap">
                 <div class="section-head">
-                    <span class="kicker">Layanan</span>
-                    <h2>Apa yang bisa kami kerjakan</h2>
-                    @if ($profile->services_subtitle)<p>{{ $profile->services_subtitle }}</p>@endif
+                    <span class="kicker">Pengalaman</span>
+                    <h2>Riwayat pekerjaan</h2>
+                    @if ($profile->experience_subtitle)<p>{{ $profile->experience_subtitle }}</p>@endif
                 </div>
-                <div class="services">
-                    @foreach ($services as $service)
-                        <article class="service">
-                            <span class="service-icon"><x-service-icon :name="$service->icon" /></span>
-                            <h3>{{ $service->title }}</h3>
-                            @if ($service->description)<p>{{ $service->description }}</p>@endif
-                            @if (! empty($service->features))
-                                <ul class="checks">
-                                    @foreach ($service->features as $feature)
-                                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg><span>{{ $feature }}</span></li>
-                                    @endforeach
-                                </ul>
-                            @endif
-                        </article>
-                    @endforeach
-                </div>
+                @if ($experiences->isNotEmpty())
+                    <ol class="timeline" style="list-style:none;margin:0;padding:0">
+                        @foreach ($experiences as $experience)
+                            <li class="job">
+                                <div class="job-when">
+                                    @if ($experience->period)<span class="num">{{ $experience->period }}</span>@endif
+                                    @if ($experience->location)<span>{{ $experience->location }}</span>@endif
+                                </div>
+                                <div>
+                                    <h3>{{ $experience->title }}</h3>
+                                    <div class="job-org">{{ $experience->company }}</div>
+                                    @if ($experience->description)<p>{{ $experience->description }}</p>@endif
+                                </div>
+                            </li>
+                        @endforeach
+                    </ol>
+                @endif
+
+                @if ($organizations->isNotEmpty())
+                    <h3 class="subhead">Organisasi</h3>
+                    @if ($profile->organization_subtitle)<p style="color:var(--muted);margin:-8px 0 16px">{{ $profile->organization_subtitle }}</p>@endif
+                    <ol class="timeline" style="list-style:none;margin:0;padding:0">
+                        @foreach ($organizations as $organization)
+                            <li class="job">
+                                <div class="job-when">
+                                    <span class="num">{{ $organization->period ?: 'Organisasi' }}</span>
+                                </div>
+                                <div>
+                                    <h3>{{ $organization->title }}</h3>
+                                    <div class="job-org">{{ $organization->organization }}</div>
+                                    @if ($organization->description)<p>{{ $organization->description }}</p>@endif
+                                </div>
+                            </li>
+                        @endforeach
+                    </ol>
+                @endif
             </div>
         </section>
     @endif
 
     @if ($projects->isNotEmpty())
-        <section class="section" id="proyek">
+        <section class="section alt" id="proyek">
             <div class="wrap">
                 <div class="section-head">
                     <span class="kicker">Proyek</span>
-                    <h2>Hasil kerja terpilih</h2>
+                    <h2>Proyek yang pernah saya kerjakan</h2>
                     @if ($profile->projects_subtitle)<p>{{ $profile->projects_subtitle }}</p>@endif
                 </div>
                 <div class="projects">
@@ -456,127 +476,66 @@
         </section>
     @endif
 
-    <section class="section" id="tentang">
-        <div class="wrap">
-            <div class="section-head">
-                <span class="kicker">Tentang</span>
-                <h2>{{ filled($profile->company_name) ? 'Di balik '.$brand : 'Profil profesional' }}</h2>
-                @if ($profile->experience_subtitle)<p>{{ $profile->experience_subtitle }}</p>@endif
-            </div>
-            <div class="about-grid">
-                <div class="founder">
-                    @if ($profile->photoUrl())
-                        <img class="founder-photo" src="{{ $profile->photoUrl() }}" alt="Foto {{ $person }}" width="360" height="450" loading="lazy">
-                    @else
-                        <div class="founder-fallback" aria-hidden="true">{{ $profile->logo_text ?: mb_substr($person, 0, 1) }}</div>
-                    @endif
-                    <div style="display:flex;flex-direction:column;gap:8px;min-width:0;flex:1">
-                        <h3>{{ $person }}</h3>
-                        @if ($profile->subtitle)<div class="founder-role">{{ filled($profile->company_name) ? 'Pendiri · ' : '' }}{{ $profile->subtitle }}</div>@endif
-                        @if ($profile->linkedin_url)
-                            <div><a class="btn" href="{{ $profile->linkedin_url }}" target="_blank" rel="noopener noreferrer" style="margin-top:8px">LinkedIn ↗</a></div>
-                        @endif
-                    </div>
-                </div>
-
-                <div class="about-col">
-                    @if ($experiences->isNotEmpty() || $organizations->isNotEmpty())
-                        <div>
-                            <h3 class="block-title">Pengalaman</h3>
-                            <ul class="timeline">
-                                @foreach ($experiences as $experience)
-                                    <li>
-                                        <span class="when">{{ $experience->period }}</span>
-                                        <div>
-                                            <strong>{{ $experience->title }}</strong>
-                                            <span class="org">{{ $experience->company }}</span>
-                                            @if ($experience->description)<p>{{ $experience->description }}</p>@endif
-                                        </div>
-                                    </li>
-                                @endforeach
-                                @foreach ($organizations as $organization)
-                                    <li>
-                                        <span class="when">{{ $organization->period ?: 'Organisasi' }}</span>
-                                        <div>
-                                            <strong>{{ $organization->title }}</strong>
-                                            <span class="org">{{ $organization->organization }}</span>
-                                            @if ($organization->description)<p>{{ $organization->description }}</p>@endif
-                                        </div>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
-
-                    @if ($skills->isNotEmpty())
-                        <div>
-                            <h3 class="block-title">Keahlian teknis</h3>
-                            <ul class="chips">
-                                @foreach ($skills as $skill)
-                                    <li>{{ $skill->name }}@if ($skill->level_label)<small>{{ $skill->level_label }}</small>@endif</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
-
-                    @if ($educations->isNotEmpty() || $certifications->isNotEmpty())
-                        <div>
-                            <h3 class="block-title">Pendidikan &amp; sertifikasi</h3>
-                            <div class="creds">
-                                @foreach ($educations as $education)
-                                    <div class="cred">
-                                        <span class="cred-type">Pendidikan</span>
-                                        <strong>{{ $education->institution }}</strong>
-                                        <span>{{ collect([$education->degree, $education->period])->filter()->implode(' · ') }}</span>
-                                        @if ($education->gpa !== null)
-                                            <span>IPK <span class="num">{{ number_format((float) $education->gpa, 2) }} / {{ number_format((float) $education->gpa_scale, 2) }}</span></span>
-                                        @endif
-                                    </div>
-                                @endforeach
-                                @foreach ($certifications as $certification)
-                                    <div class="cred">
-                                        <span class="cred-type">Sertifikasi</span>
-                                        <strong>
-                                            @if ($certification->credential_url)
-                                                <a href="{{ $certification->credential_url }}" target="_blank" rel="noopener noreferrer">{{ $certification->name }} ↗</a>
-                                            @else
-                                                {{ $certification->name }}
-                                            @endif
-                                        </strong>
-                                        @if ($certification->issuer)<span>{{ $certification->issuer }}</span>@endif
-                                        @if ($certification->score)<span>Skor <span class="num">{{ $certification->score }}</span></span>@endif
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </section>
-
-    @if ($team->isNotEmpty())
-        <section class="section" id="tim">
+    @if ($skills->isNotEmpty())
+        <section class="section" id="keahlian">
             <div class="wrap">
                 <div class="section-head">
-                    <span class="kicker">Tim</span>
-                    <h2>Orang-orang di balik layanan kami</h2>
-                    @if ($profile->team_subtitle)<p>{{ $profile->team_subtitle }}</p>@endif
+                    <span class="kicker">Keahlian</span>
+                    <h2>Kemampuan teknis</h2>
+                    @if ($profile->skills_subtitle)<p>{{ $profile->skills_subtitle }}</p>@endif
                 </div>
-                <div class="team">
-                    @foreach ($team as $member)
-                        <article class="member">
-                            @if ($member->photoUrl())
-                                <img class="member-photo" src="{{ $member->photoUrl() }}" alt="Foto {{ $member->name }}" loading="lazy" width="320" height="320">
-                            @else
-                                <div class="member-fallback" aria-hidden="true">{{ mb_substr($member->name, 0, 1) }}</div>
-                            @endif
-                            <div>
-                                <h3>{{ $member->name }}</h3>
-                                @if ($member->position)<span>{{ $member->position }}</span>@endif
+                <div class="skills">
+                    @foreach ($skills as $skill)
+                        @php $level = max(1, min(5, (int) round($skill->percentage / 20))); @endphp
+                        <div class="skill">
+                            <div class="skill-top">
+                                <h3>{{ $skill->name }}</h3>
+                                @if ($skill->level_label)<span class="skill-level">{{ $skill->level_label }}</span>@endif
                             </div>
-                            @if ($member->bio)<p>{{ $member->bio }}</p>@endif
-                            @if ($member->linkedin_url)<a href="{{ $member->linkedin_url }}" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>@endif
+                            <div class="meter" role="img" aria-label="Level {{ $level }} dari 5">
+                                @for ($i = 1; $i <= 5; $i++)<i class="{{ $i <= $level ? 'on' : '' }}"></i>@endfor
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+    @endif
+
+    @if (isset($nav['pendidikan']))
+        <section class="section alt" id="pendidikan">
+            <div class="wrap">
+                <div class="section-head">
+                    <span class="kicker">Pendidikan &amp; sertifikasi</span>
+                    <h2>Latar belakang akademik</h2>
+                    @if ($profile->education_subtitle)<p>{{ $profile->education_subtitle }}</p>@endif
+                </div>
+                <div class="creds">
+                    @foreach ($educations as $education)
+                        <article class="cred">
+                            <span class="cred-type">Pendidikan</span>
+                            <h3>{{ $education->institution }}</h3>
+                            @if ($education->degree)<p>{{ $education->degree }}</p>@endif
+                            <p>{{ collect([$education->period, $education->faculty, $education->location])->filter()->implode(' · ') }}</p>
+                            @if ($education->gpa !== null)
+                                <div class="cred-figure"><strong>{{ number_format((float) $education->gpa, 2) }}</strong><span>IPK dari {{ number_format((float) $education->gpa_scale, 2) }}</span></div>
+                            @endif
+                        </article>
+                    @endforeach
+                    @foreach ($certifications as $certification)
+                        <article class="cred">
+                            <span class="cred-type">Sertifikasi</span>
+                            <h3>
+                                @if ($certification->credential_url)
+                                    <a href="{{ $certification->credential_url }}" target="_blank" rel="noopener noreferrer">{{ $certification->name }} ↗</a>
+                                @else
+                                    {{ $certification->name }}
+                                @endif
+                            </h3>
+                            @if ($certification->issuer)<p>{{ $certification->issuer }}</p>@endif
+                            @if ($certification->score)
+                                <div class="cred-figure"><strong>{{ $certification->score }}</strong><span>Skor</span></div>
+                            @endif
                         </article>
                     @endforeach
                 </div>
@@ -588,11 +547,12 @@
         <div class="wrap">
             <div class="cta">
                 <div>
-                    <h2>{{ $profile->contact_title ?: 'Siap memulai proyek?' }}</h2>
+                    <h2>{{ $profile->contact_title ?: 'Mari bekerja sama' }}</h2>
                     @if ($profile->contact_subtitle)<p>{{ $profile->contact_subtitle }}</p>@endif
-                    <div class="hero-actions">
+                    <div class="actions">
                         @if ($profile->whatsapp_number)<a class="btn btn-primary" href="https://wa.me/{{ $profile->whatsapp_number }}" target="_blank" rel="noopener noreferrer">Chat WhatsApp</a>@endif
                         @if ($profile->email)<a class="btn {{ $profile->whatsapp_number ? '' : 'btn-primary' }}" href="mailto:{{ $profile->email }}">Kirim email</a>@endif
+                        @if ($profile->cvUrl())<a class="btn" href="{{ $profile->cvUrl() }}" download>Unduh CV</a>@endif
                     </div>
                 </div>
                 <dl class="contact-list">
@@ -607,40 +567,15 @@
 </main>
 
 <footer class="site-footer">
-    <div class="wrap">
-        <div class="footer-grid">
-            <div class="footer-brand">
-                <a class="brand" href="#top">
-                    @if ($profile->logoUrl())
-                        <img src="{{ $profile->logoUrl() }}" alt="Logo {{ $brand }}" height="36">
-                    @else
-                        <span class="brand-mark" aria-hidden="true">{{ $mark }}</span>
-                    @endif
-                    <span class="brand-name">{{ $brand }}</span>
-                </a>
-                <p>{{ $headline }}</p>
-            </div>
-            @if ($services->isNotEmpty())
-                <div>
-                    <h3>Layanan</h3>
-                    <ul>
-                        @foreach ($services as $service)<li><a href="#layanan">{{ $service->title }}</a></li>@endforeach
-                    </ul>
-                </div>
-            @endif
-            <div>
-                <h3>Kontak</h3>
-                <ul>
-                    @if ($profile->email)<li><a href="mailto:{{ $profile->email }}">{{ $profile->email }}</a></li>@endif
-                    @if ($profile->phone)<li><a href="tel:{{ $profile->phoneHref() }}">{{ $profile->phone }}</a></li>@endif
-                    @if ($profile->address)<li>{{ $profile->address }}</li>@endif
-                </ul>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <span>&copy; {{ now()->year }} {{ $brand }}. Hak cipta dilindungi.</span>
-            <a href="#top">Kembali ke atas ↑</a>
-        </div>
+    <div class="wrap footer-row">
+        <a class="brand" href="#top" style="margin-right:0">
+            <span class="brand-mark" aria-hidden="true">{{ $mark }}</span>
+            <span class="brand-name">{{ $name }}</span>
+        </a>
+        <nav class="footer-links" aria-label="Navigasi bawah">
+            @foreach ($nav as $id => $label)<a href="#{{ $id }}">{{ $label }}</a>@endforeach
+        </nav>
+        <p>&copy; {{ now()->year }} {{ $name }}</p>
     </div>
 </footer>
 
