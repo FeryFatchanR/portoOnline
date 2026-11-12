@@ -18,6 +18,7 @@ echo "==> Migrasi database"
 php artisan migrate --force
 
 echo "==> Aset & cache"
+[ -L public/storage ] || php artisan storage:link
 php artisan filament:assets
 php artisan optimize:clear
 php artisan optimize

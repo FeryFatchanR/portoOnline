@@ -7,6 +7,7 @@ use App\Models\Education;
 use App\Models\Experience;
 use App\Models\Organization;
 use App\Models\Profile;
+use App\Models\Project;
 use App\Models\Skill;
 use App\Models\Stat;
 use Illuminate\Database\Eloquent\Model;
@@ -21,6 +22,8 @@ class PortfolioSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->seedProjects();
+
         if (Profile::query()->exists()) {
             $this->command?->warn('Data portfolio sudah ada, seeder dilewati.');
 
@@ -42,6 +45,7 @@ class PortfolioSeeder extends Seeder
                 'skills_subtitle' => 'Menguasai berbagai teknologi dan tools untuk pengembangan software dan infrastruktur IT',
                 'experience_subtitle' => 'Pengalaman profesional di PT. Telekomunikasi Indonesia',
                 'organization_subtitle' => 'Pengalaman kepemimpinan dan organisasi',
+                'projects_subtitle' => 'Sistem yang saya rancang dan bangun',
                 'education_subtitle' => 'Latar belakang pendidikan tinggi',
                 'certification_subtitle' => 'Sertifikasi profesional di bidang IT Security',
                 'contact_title' => "Let's Connect",
@@ -115,6 +119,25 @@ class PortfolioSeeder extends Seeder
                 ['name' => 'Classical Cryptography for Beginner Course', 'icon' => '🔐', 'score' => '80.00'],
             ]);
         });
+    }
+
+    /** Proyek diisi terpisah agar instalasi lama yang sudah punya profil tetap mendapat contoh proyek. */
+    private function seedProjects(): void
+    {
+        if (Project::query()->exists()) {
+            return;
+        }
+
+        Project::create([
+            'title' => 'MyStar (My Sales Team)',
+            'role' => 'Web Developer',
+            'period' => 'Jun 2024 - Feb 2026',
+            'summary' => 'Sistem pengelolaan data tim penjualan yang terintegrasi untuk PT. Telekomunikasi Indonesia - Telda Slawi.',
+            'description' => 'Perancangan arsitektur sistem, desain database, pengembangan dashboard dan laporan real-time, serta pemeliharaan agar sistem berjalan optimal dan mudah digunakan.',
+            'tech_stack' => ['Laravel', 'MySQL', 'Dashboard', 'Laporan real-time'],
+            'sort_order' => 1,
+            'is_visible' => true,
+        ]);
     }
 
     /**

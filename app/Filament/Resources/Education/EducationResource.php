@@ -23,7 +23,7 @@ class EducationResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Konten Portfolio';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 7;
 
     protected static ?string $modelLabel = 'Pendidikan';
 

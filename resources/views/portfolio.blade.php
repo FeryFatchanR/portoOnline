@@ -1,1086 +1,612 @@
+@php
+    $name = $profile->singleLineName();
+    $initials = $profile->logo_text ?: collect(explode(' ', $name))->map(fn ($w) => mb_substr($w, 0, 1))->take(2)->implode('');
+    $hasWork = $experiences->isNotEmpty() || $organizations->isNotEmpty();
+    $sections = array_filter([
+        'tentang' => $profile->description ? 'Tentang' : null,
+        'pengalaman' => $hasWork ? 'Pengalaman' : null,
+        'proyek' => $projects->isNotEmpty() ? 'Proyek' : null,
+        'keahlian' => $skills->isNotEmpty() ? 'Keahlian' : null,
+        'pendidikan' => $educations->isNotEmpty() || $certifications->isNotEmpty() ? 'Pendidikan' : null,
+        'kontak' => 'Kontak',
+    ]);
+@endphp
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ str_replace("\n", ' ', $profile->name) }} - Portfolio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>{{ $name }} · Portfolio</title>
     <meta name="description" content="{{ $profile->subtitle }}">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
-    @verbatim
+    <meta name="color-scheme" content="light dark">
+    <script>
+        // Terapkan tema tersimpan sebelum render agar tidak berkedip.
+        try {
+            var t = localStorage.getItem('theme');
+            if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+        } catch (e) {}
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Schibsted+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
     <style>
+        /* Layout: resume dua kolom — kolom identitas sticky di kiri, isi bergulir di kanan; satu kolom di layar sempit. */
         :root {
-            --color-bg-primary: #0B0E1A;
-            --color-bg-secondary: #141825;
-            --color-accent-primary: #00FFA3;
-            --color-accent-secondary: #7B61FF;
-            --color-text-primary: #FFFFFF;
-            --color-text-secondary: #A8B2D1;
-            --color-surface: #1A1F35;
-            --color-border: rgba(0, 255, 163, 0.1);
-        }
+            --bg: #F3F5F4;
+            --surface: #FFFFFF;
+            --ink: #111719;
+            --muted: #586468;
+            --line: #DCE2E0;
+            --accent: #0A7563;
+            --accent-ink: #FFFFFF;
+            --accent-soft: #DDEFEB;
+            --ok: #1C8A4B;
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+            --font-display: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+            --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+            --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 
-        body {
-            font-family: 'Sora', sans-serif;
-            background: var(--color-bg-primary);
-            color: var(--color-text-primary);
-            overflow-x: hidden;
-            line-height: 1.7;
-        }
+            --step--1: 0.8125rem;
+            --step-0: 1rem;
+            --step-1: 1.1875rem;
+            --step-2: 1.5rem;
+            --step-3: clamp(1.75rem, 1.4rem + 1.2vw, 2.25rem);
+            --step-4: clamp(2.25rem, 1.7rem + 2.4vw, 3.25rem);
 
-        /* Animated Grid Background */
-        .grid-background {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: 
-                linear-gradient(rgba(0, 255, 163, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 255, 163, 0.03) 1px, transparent 1px);
-            background-size: 50px 50px;
-            z-index: 0;
-            pointer-events: none;
+            --radius: 14px;
+            color-scheme: light;
         }
-
-        .gradient-orb {
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(120px);
-            opacity: 0.3;
-            z-index: 0;
-            pointer-events: none;
-        }
-
-        .orb-1 {
-            width: 600px;
-            height: 600px;
-            background: var(--color-accent-primary);
-            top: -200px;
-            right: -100px;
-            animation: float 25s infinite ease-in-out;
-        }
-
-        .orb-2 {
-            width: 500px;
-            height: 500px;
-            background: var(--color-accent-secondary);
-            bottom: -150px;
-            left: -100px;
-            animation: float 20s infinite ease-in-out reverse;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            33% { transform: translate(100px, -80px) rotate(120deg); }
-            66% { transform: translate(-50px, 100px) rotate(240deg); }
-        }
-
-        /* Container */
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 80px;
-            position: relative;
-            z-index: 1;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 0 24px;
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg: #0D1113;
+                --surface: #151B1E;
+                --ink: #E6ECEA;
+                --muted: #95A3A2;
+                --line: #263135;
+                --accent: #3FC6AA;
+                --accent-ink: #052019;
+                --accent-soft: #123129;
+                --ok: #4ADE80;
+                color-scheme: dark;
             }
         }
-
-        /* Navigation */
-        nav {
-            padding: 30px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--color-border);
-            animation: slideDown 0.6s ease-out;
+        :root[data-theme="dark"] {
+            --bg: #0D1113;
+            --surface: #151B1E;
+            --ink: #E6ECEA;
+            --muted: #95A3A2;
+            --line: #263135;
+            --accent: #3FC6AA;
+            --accent-ink: #052019;
+            --accent-soft: #123129;
+            --ok: #4ADE80;
+            color-scheme: dark;
         }
 
-        .logo {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 28px;
-            font-weight: 900;
-            color: var(--color-accent-primary);
-            text-transform: uppercase;
-            letter-spacing: 2px;
+        *, *::before, *::after { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: var(--font-body);
+            font-size: var(--step-0);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
         }
+        img { max-width: 100%; display: block; }
+        a { color: inherit; }
+        :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+        h1, h2, h3 { font-family: var(--font-display); line-height: 1.15; margin: 0; text-wrap: balance; }
+        p { margin: 0; }
+        .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
-        .nav-links {
-            display: flex;
-            gap: 50px;
-            list-style: none;
-        }
-
-        .nav-links a {
-            color: var(--color-text-secondary);
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            position: relative;
-            transition: color 0.3s ease;
-        }
-
-        .nav-links a::before {
-            content: '';
-            position: absolute;
-            bottom: -8px;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background: var(--color-accent-primary);
-            transition: width 0.3s ease;
-        }
-
-        .nav-links a:hover {
-            color: var(--color-accent-primary);
-        }
-
-        .nav-links a:hover::before {
-            width: 100%;
-        }
-
-        /* Hero Section */
-        .hero {
-            padding: 120px 0;
-            animation: fadeIn 1s ease-out;
-        }
-
-        .hero-badge {
-            display: inline-block;
-            padding: 12px 24px;
-            background: rgba(0, 255, 163, 0.1);
-            border: 1px solid var(--color-accent-primary);
-            border-radius: 50px;
-            color: var(--color-accent-primary);
-            font-size: 13px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-bottom: 30px;
-        }
-
-        .hero h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 80px;
-            font-weight: 900;
-            line-height: 1.1;
-            margin-bottom: 24px;
-            background: linear-gradient(135deg, var(--color-text-primary) 0%, var(--color-accent-primary) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-transform: uppercase;
-            letter-spacing: -2px;
-        }
-
-        .hero-subtitle {
-            font-size: 28px;
-            color: var(--color-text-secondary);
-            margin-bottom: 40px;
-            font-weight: 300;
-            max-width: 700px;
-        }
-
-        .hero-description {
-            font-size: 18px;
-            color: var(--color-text-secondary);
-            margin-bottom: 50px;
-            max-width: 600px;
-            line-height: 1.8;
-        }
-
-        /* Stats Grid */
-        .stats-grid {
+        .page {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding-left: max(20px, env(safe-area-inset-left, 0px));
+            padding-right: max(20px, env(safe-area-inset-right, 0px));
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 30px;
-            margin-top: 80px;
+            grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+            gap: clamp(32px, 5vw, 80px);
         }
 
-        .stat-card {
-            background: var(--color-surface);
-            border: 1px solid var(--color-border);
-            border-radius: 16px;
-            padding: 40px 30px;
-            text-align: center;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
+        /* ---------- Kolom identitas ---------- */
+        .identity {
+            position: sticky;
             top: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-secondary));
-            transform: scaleX(0);
-            transition: transform 0.3s ease;
-        }
-
-        .stat-card:hover::before {
-            transform: scaleX(1);
-        }
-
-        .stat-card:hover {
-            transform: translateY(-8px);
-            border-color: var(--color-accent-primary);
-            box-shadow: 0 20px 60px rgba(0, 255, 163, 0.15);
-        }
-
-        .stat-number {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 48px;
-            font-weight: 900;
-            color: var(--color-accent-primary);
-            display: block;
-            margin-bottom: 10px;
-        }
-
-        .stat-label {
-            font-size: 14px;
-            color: var(--color-text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* CTA Buttons */
-        .cta-buttons {
-            display: flex;
-            gap: 20px;
-            margin-top: 40px;
-        }
-
-        .btn {
-            padding: 18px 45px;
-            border-radius: 8px;
-            font-weight: 700;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            display: inline-block;
-            font-size: 15px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            border: 2px solid transparent;
-        }
-
-        .btn-primary {
-            background: var(--color-accent-primary);
-            color: var(--color-bg-primary);
-            border-color: var(--color-accent-primary);
-        }
-
-        .btn-primary:hover {
-            background: transparent;
-            color: var(--color-accent-primary);
-            box-shadow: 0 10px 40px rgba(0, 255, 163, 0.3);
-        }
-
-        .btn-secondary {
-            background: transparent;
-            color: var(--color-text-primary);
-            border-color: var(--color-text-secondary);
-        }
-
-        .btn-secondary:hover {
-            border-color: var(--color-accent-primary);
-            color: var(--color-accent-primary);
-        }
-
-        /* Section Styles */
-        section {
-            padding: 100px 0;
-            animation: fadeIn 0.8s ease-out;
-        }
-
-        .section-header {
-            margin-bottom: 70px;
-        }
-
-        .section-tag {
-            display: inline-block;
-            font-size: 13px;
-            color: var(--color-accent-primary);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 16px;
-            font-weight: 700;
-        }
-
-        .section-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 56px;
-            font-weight: 900;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            letter-spacing: -1px;
-        }
-
-        .section-subtitle {
-            font-size: 18px;
-            color: var(--color-text-secondary);
-            max-width: 600px;
-        }
-
-        /* Skills Section */
-        .skills-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 24px;
-        }
-
-        .skill-card {
-            background: var(--color-surface);
-            border: 1px solid var(--color-border);
-            padding: 35px;
-            border-radius: 16px;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .skill-card::after {
-            content: '';
-            position: absolute;
-            top: -1px;
-            left: -1px;
-            right: -1px;
-            bottom: -1px;
-            background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
-            border-radius: 16px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-
-        .skill-card:hover::after {
-            opacity: 1;
-        }
-
-        .skill-card:hover {
-            transform: translateY(-5px);
-            background: var(--color-bg-secondary);
-        }
-
-        .skill-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .skill-name {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--color-text-primary);
-        }
-
-        .skill-badge {
-            padding: 6px 14px;
-            background: rgba(0, 255, 163, 0.1);
-            border-radius: 20px;
-            font-size: 11px;
-            color: var(--color-accent-primary);
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .skill-bar {
-            width: 100%;
-            height: 6px;
-            background: var(--color-bg-secondary);
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .skill-progress {
-            height: 100%;
-            background: linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-secondary));
-            border-radius: 10px;
-            animation: progressLoad 1.5s ease-out forwards;
-        }
-
-        @keyframes progressLoad {
-            from { width: 0; }
-        }
-
-        /* Experience Section */
-        .timeline {
-            position: relative;
-            padding-left: 50px;
-        }
-
-        .timeline::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: linear-gradient(180deg, var(--color-accent-primary), var(--color-accent-secondary));
-        }
-
-        .timeline-item {
-            position: relative;
-            margin-bottom: 50px;
-        }
-
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: -56px;
-            top: 8px;
-            width: 14px;
-            height: 14px;
-            background: var(--color-accent-primary);
-            border-radius: 50%;
-            box-shadow: 0 0 0 4px var(--color-bg-primary), 0 0 0 6px var(--color-accent-primary);
-        }
-
-        .experience-card {
-            background: var(--color-surface);
-            border: 1px solid var(--color-border);
-            padding: 40px;
-            border-radius: 16px;
-            transition: all 0.3s ease;
-        }
-
-        .experience-card:hover {
-            transform: translateX(10px);
-            border-color: var(--color-accent-primary);
-        }
-
-        .experience-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
-            margin-bottom: 20px;
-            gap: 20px;
-        }
-
-        .experience-title {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--color-text-primary);
-            margin-bottom: 8px;
-        }
-
-        .experience-company {
-            font-size: 16px;
-            color: var(--color-accent-primary);
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-
-        .experience-location {
-            font-size: 14px;
-            color: var(--color-text-secondary);
-        }
-
-        .experience-period {
-            font-size: 13px;
-            color: var(--color-accent-primary);
-            padding: 8px 16px;
-            background: rgba(0, 255, 163, 0.1);
-            border-radius: 6px;
-            white-space: nowrap;
-            text-transform: uppercase;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-
-        .experience-description {
-            color: var(--color-text-secondary);
-            line-height: 1.8;
-            font-size: 15px;
-        }
-
-        /* Education Card */
-        .education-card {
-            background: var(--color-surface);
-            border: 1px solid var(--color-border);
-            padding: 50px;
-            border-radius: 16px;
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 50px;
-            align-items: center;
-        }
-
-        .education-info h3 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 12px;
-        }
-
-        .education-degree {
-            font-size: 18px;
-            color: var(--color-accent-primary);
-            margin-bottom: 20px;
-            font-weight: 600;
-        }
-
-        .education-meta {
+            align-self: start;
+            max-height: 100vh;
+            overflow-y: auto;
+            padding-block: 48px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            color: var(--color-text-secondary);
-            font-size: 15px;
+            gap: 24px;
+            scrollbar-width: none;
         }
+        .identity::-webkit-scrollbar { display: none; }
+        .identity > * { flex-shrink: 0; }
+        .identity-top { display: flex; flex-direction: column; gap: 20px; }
+        .identity-name { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+        .portrait {
+            width: 100%;
+            max-width: 220px;
+            aspect-ratio: 4 / 5;
+            border-radius: var(--radius);
+            object-fit: cover;
+            background: var(--accent-soft);
+        }
+        .monogram {
+            width: 96px;
+            aspect-ratio: 1;
+            border-radius: var(--radius);
+            background: var(--accent);
+            color: var(--accent-ink);
+            display: grid;
+            place-items: center;
+            font-family: var(--font-display);
+            font-weight: 800;
+            font-size: 1.75rem;
+            letter-spacing: 0.02em;
+        }
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: var(--step--1);
+            font-weight: 500;
+            color: var(--muted);
+        }
+        .status::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--ok);
+            box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 18%, transparent);
+        }
+        .identity h1 { font-size: var(--step-4); font-weight: 800; letter-spacing: -0.02em; }
+        .role { color: var(--muted); font-size: var(--step-1); line-height: 1.45; }
 
-        .education-meta div {
+        .specs { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin: 0; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+        .specs div { background: var(--bg); padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+        .specs dt { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+        .specs dd { margin: 0; font-family: var(--font-mono); font-weight: 500; font-size: var(--step-1); font-variant-numeric: tabular-nums; }
+
+        .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.9375rem;
+            text-decoration: none;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink);
+            transition: border-color .15s, background-color .15s, transform .15s;
+        }
+        .btn:hover { border-color: var(--accent); }
+        .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+        .btn-primary:hover { background: color-mix(in srgb, var(--accent) 88%, var(--ink)); }
+        .btn svg { width: 16px; height: 16px; flex: none; }
+
+        .toc { display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--line); padding-top: 16px; }
+        .toc a {
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 0.9375rem;
+            padding: 6px 0;
             display: flex;
             align-items: center;
             gap: 10px;
+            transition: color .15s;
         }
+        .toc a::before { content: ""; width: 14px; height: 1px; background: currentColor; transition: width .15s; }
+        .toc a:hover, .toc a.is-active { color: var(--ink); }
+        .toc a.is-active::before { width: 28px; background: var(--accent); }
 
-        .gpa-container {
-            text-align: center;
-            padding: 40px;
-            background: var(--color-bg-secondary);
-            border: 2px solid var(--color-accent-primary);
-            border-radius: 16px;
-        }
-
-        .gpa-number {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 72px;
-            font-weight: 900;
-            color: var(--color-accent-primary);
-            display: block;
-            line-height: 1;
-        }
-
-        .gpa-label {
-            color: var(--color-text-secondary);
-            font-size: 13px;
-            margin-top: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* Certificates */
-        .certificates-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 30px;
-        }
-
-        .certificate-card {
-            background: var(--color-surface);
-            border: 1px solid var(--color-border);
-            padding: 40px;
-            border-radius: 16px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .certificate-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: linear-gradient(180deg, var(--color-accent-primary), var(--color-accent-secondary));
-            transform: scaleY(0);
-            transition: transform 0.3s ease;
-        }
-
-        .certificate-card:hover::before {
-            transform: scaleY(1);
-        }
-
-        .certificate-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--color-accent-primary);
-        }
-
-        .certificate-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
-            border-radius: 12px;
-            display: flex;
+        .theme-toggle {
+            align-self: flex-start;
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            margin-bottom: 24px;
+            gap: 8px;
+            background: none;
+            border: 1px solid var(--line);
+            color: var(--muted);
+            border-radius: 999px;
+            padding: 6px 12px;
+            font: inherit;
+            font-size: var(--step--1);
+            cursor: pointer;
         }
+        .theme-toggle:hover { color: var(--ink); border-color: var(--muted); }
+        .theme-toggle svg { width: 14px; height: 14px; }
 
-        .certificate-name {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 16px;
-            color: var(--color-text-primary);
-        }
+        /* ---------- Isi ---------- */
+        main { padding-block: 48px 32px; display: flex; flex-direction: column; min-width: 0; }
+        .section { padding-block: 40px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 28px; scroll-margin-top: 16px; }
+        .section:first-child { border-top: 0; padding-top: 0; }
+        .section-head { display: flex; flex-direction: column; gap: 6px; }
+        .section-head h2 { font-size: var(--step-3); font-weight: 700; letter-spacing: -0.01em; }
+        .section-head p { color: var(--muted); max-width: 60ch; }
+        .lead { font-size: var(--step-2); line-height: 1.5; max-width: 34ch; font-family: var(--font-display); font-weight: 600; letter-spacing: -0.01em; }
+        .lead-body { color: var(--muted); max-width: 62ch; font-size: var(--step-1); }
 
-        .certificate-score {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 36px;
-            font-weight: 900;
-            color: var(--color-accent-primary);
-        }
+        /* Timeline pengalaman: periode di kolom kiri */
+        .timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+        .entry { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 8px 32px; padding-block: 22px; border-top: 1px dashed var(--line); }
+        .entry:first-child { border-top: 0; padding-top: 0; }
+        .entry-when { font-family: var(--font-mono); font-size: var(--step--1); color: var(--muted); padding-top: 4px; font-variant-numeric: tabular-nums; }
+        .entry-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+        .entry h3 { font-size: var(--step-1); font-weight: 700; }
+        .entry-org { color: var(--accent); font-weight: 600; }
+        .entry-org span { color: var(--muted); font-weight: 400; }
+        .entry-desc { color: var(--muted); max-width: 65ch; }
+        .subhead { font-family: var(--font-display); font-size: var(--step-1); font-weight: 700; margin-top: 12px; }
 
-        /* Contact Section */
-        .contact-section {
-            background: var(--color-surface);
-            border: 1px solid var(--color-border);
-            padding: 80px;
-            border-radius: 20px;
-            text-align: center;
-        }
-
-        .contact-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 48px;
-            font-weight: 900;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-        }
-
-        .contact-subtitle {
-            font-size: 18px;
-            color: var(--color-text-secondary);
-            margin-bottom: 50px;
-        }
-
-        .contact-info {
+        /* Proyek: satu-satunya elemen berbentuk kartu */
+        .projects { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 20px; }
+        .project { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; transition: border-color .15s, transform .15s; }
+        .project:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+        .project-media { aspect-ratio: 16 / 10; width: 100%; object-fit: cover; background: var(--accent-soft); border-bottom: 1px solid var(--line); }
+        .project-placeholder {
+            aspect-ratio: 16 / 10;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
-            margin-top: 60px;
+            place-items: center;
+            background:
+                linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 24px,
+                var(--accent-soft);
+            border-bottom: 1px solid var(--line);
+            font-family: var(--font-display);
+            font-weight: 800;
+            font-size: 2.5rem;
+            color: var(--accent);
         }
+        .project-body { padding: 20px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+        .project h3 { font-size: var(--step-1); font-weight: 700; }
+        .project-meta { font-family: var(--font-mono); font-size: var(--step--1); color: var(--muted); }
+        .project-summary { color: var(--muted); }
+        .tags { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
+        .tags li { font-family: var(--font-mono); font-size: 0.75rem; padding: 3px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--ink); }
+        .project-links { display: flex; gap: 16px; margin-top: auto; padding-top: 6px; }
+        .project-links a { font-weight: 600; font-size: 0.9375rem; color: var(--accent); text-decoration: none; }
+        .project-links a:hover { text-decoration: underline; text-underline-offset: 3px; }
 
-        .contact-item {
-            background: var(--color-bg-secondary);
-            padding: 30px;
-            border-radius: 12px;
-            border: 1px solid var(--color-border);
-            transition: all 0.3s ease;
+        /* Keahlian: level 1–5 dari persentase */
+        .skills { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); column-gap: 40px; }
+        .skill { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 16px; padding-block: 14px; border-bottom: 1px solid var(--line); }
+        .skill-name { font-weight: 600; }
+        .skill-level { grid-column: 1; font-size: var(--step--1); color: var(--muted); }
+        .meter { grid-column: 2; grid-row: 1 / span 2; display: flex; gap: 4px; }
+        .meter i { width: 10px; height: 18px; border-radius: 3px; background: var(--line); }
+        .meter i.on { background: var(--accent); }
+
+        /* Pendidikan & sertifikasi */
+        .edu { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: start; }
+        .edu h3 { font-size: var(--step-2); font-weight: 700; }
+        .edu-degree { color: var(--accent); font-weight: 600; margin-top: 4px; }
+        .facts { margin: 14px 0 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 16px; color: var(--muted); font-size: 0.9375rem; }
+        .facts dt { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.08em; padding-top: 3px; }
+        .facts dd { margin: 0; color: var(--ink); }
+        .gpa { text-align: right; }
+        .gpa-value { font-family: var(--font-mono); font-weight: 500; font-size: var(--step-4); line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
+        .gpa-value span { font-size: var(--step-1); color: var(--muted); letter-spacing: 0; }
+        .gpa-label { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-top: 6px; }
+        .certs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+        .cert { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; padding-block: 14px; border-bottom: 1px solid var(--line); align-items: baseline; }
+        .cert:first-child { border-top: 1px solid var(--line); }
+        .cert-name { font-weight: 600; }
+        .cert-name a { text-decoration: none; }
+        .cert-name a:hover { color: var(--accent); }
+        .cert-issuer { grid-column: 1; font-size: var(--step--1); color: var(--muted); }
+        .cert-score { grid-column: 2; grid-row: 1; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--muted); font-size: 0.9375rem; }
+        .cert-score strong { color: var(--ink); font-weight: 500; }
+
+        /* Kontak */
+        .contact { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: clamp(24px, 4vw, 40px); display: flex; flex-direction: column; gap: 24px; }
+        .contact h2 { font-size: var(--step-3); }
+        .contact-list { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 16px; }
+        .contact-list div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .contact-list dt { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+        .contact-list dd { margin: 0; overflow-wrap: anywhere; }
+        .contact-list a { text-decoration: none; font-weight: 500; }
+        .contact-list a:hover { color: var(--accent); }
+
+        footer { padding-block: 24px 48px; color: var(--muted); font-size: var(--step--1); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; border-top: 1px solid var(--line); margin-top: 24px; }
+
+        @media (max-width: 900px) {
+            .page { grid-template-columns: minmax(0, 1fr); gap: 0; }
+            .identity { position: static; max-height: none; overflow: visible; padding-block: 32px 8px; }
+            .identity-top { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px; align-items: end; }
+            .portrait { width: 120px; }
+            .toc { display: none; }
+            main { padding-top: 16px; }
+            .section:first-child { border-top: 1px solid var(--line); padding-top: 40px; }
         }
-
-        .contact-item:hover {
-            border-color: var(--color-accent-primary);
-            transform: translateY(-5px);
-        }
-
-        .contact-icon {
-            font-size: 32px;
-            margin-bottom: 16px;
-        }
-
-        .contact-item a {
-            color: var(--color-text-primary);
-            text-decoration: none;
-            font-weight: 600;
-            display: block;
-            transition: color 0.3s ease;
-        }
-
-        .contact-item a:hover {
-            color: var(--color-accent-primary);
-        }
-
-        .contact-item .contact-label {
-            font-size: 12px;
-            color: var(--color-text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
-
-        /* Footer */
-        footer {
-            text-align: center;
-            padding: 50px 0;
-            color: var(--color-text-secondary);
-            border-top: 1px solid var(--color-border);
-            margin-top: 100px;
-        }
-
-        /* Animations */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .education-card {
-                grid-template-columns: 1fr;
-            }
-
-            .hero h1 {
-                font-size: 60px;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-            }
-
-            .hero h1 {
-                font-size: 42px;
-            }
-
-            .hero-subtitle {
-                font-size: 20px;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .section-title {
-                font-size: 36px;
-            }
-
-            .contact-section {
-                padding: 50px 30px;
-            }
-
-            .contact-title {
-                font-size: 32px;
-            }
-
-            .cta-buttons {
-                flex-direction: column;
-            }
-
-            .timeline {
-                padding-left: 30px;
-            }
-
-            .timeline-item::before {
-                left: -36px;
-            }
-
-            .experience-header {
-                flex-direction: column;
-            }
-
-            .experience-period {
-                align-self: flex-start;
-            }
+        @media (max-width: 560px) {
+            .entry { grid-template-columns: minmax(0, 1fr); }
+            .entry-when { padding-top: 0; }
+            .edu { grid-template-columns: minmax(0, 1fr); }
+            .gpa { text-align: left; }
+            .identity-top { grid-template-columns: minmax(0, 1fr); }
         }
     </style>
-    @endverbatim
 </head>
 <body>
-    <div class="grid-background"></div>
-    <div class="gradient-orb orb-1"></div>
-    <div class="gradient-orb orb-2"></div>
+<div class="page">
+    <aside class="identity" aria-label="Profil">
+        <div class="identity-top">
+            @if ($profile->photoUrl())
+                <img class="portrait" src="{{ $profile->photoUrl() }}" alt="Foto {{ $name }}" width="220" height="275">
+            @else
+                <div class="monogram" aria-hidden="true">{{ $initials }}</div>
+            @endif
+            <div class="identity-name">
+                @if ($profile->badge_text)
+                    <span class="status">{{ trim($profile->badge_text, "✦ \t") }}</span>
+                @endif
+                <h1>{!! nl2br(e($profile->name), false) !!}</h1>
+            </div>
+        </div>
 
-    <div class="container">
-        <!-- Navigation -->
-        <nav>
-            <div class="logo">{{ $profile->logo_text }}</div>
-            <ul class="nav-links">
-                <li><a href="#about">About</a></li>
-                @if ($skills->isNotEmpty())<li><a href="#skills">Skills</a></li>@endif
-                @if ($experiences->isNotEmpty() || $organizations->isNotEmpty())<li><a href="#experience">Experience</a></li>@endif
-                @if ($educations->isNotEmpty())<li><a href="#education">Education</a></li>@endif
-                <li><a href="#contact">Contact</a></li>
-            </ul>
+        @if ($profile->subtitle)
+            <p class="role">{{ $profile->subtitle }}</p>
+        @endif
+
+        @if ($stats->isNotEmpty())
+            <dl class="specs">
+                @foreach ($stats as $stat)
+                    <div>
+                        <dt>{{ $stat->label }}</dt>
+                        <dd>{{ $stat->number }}</dd>
+                    </div>
+                @endforeach
+            </dl>
+        @endif
+
+        <div class="actions">
+            @if ($profile->cvUrl())
+                <a class="btn btn-primary" href="{{ $profile->cvUrl() }}" download>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg>
+                    Unduh CV
+                </a>
+            @endif
+            <a class="btn {{ $profile->cvUrl() ? '' : 'btn-primary' }}" href="#kontak">Hubungi saya</a>
+            @if ($profile->linkedin_url)
+                <a class="btn" href="{{ $profile->linkedin_url }}" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+            @endif
+        </div>
+
+        <nav class="toc" aria-label="Navigasi bagian">
+            @foreach ($sections as $id => $label)
+                <a href="#{{ $id }}" data-section="{{ $id }}">{{ $label }}</a>
+            @endforeach
         </nav>
 
-        <!-- Hero Section -->
-        <section class="hero" id="about">
-            @if ($profile->badge_text)
-                <div class="hero-badge">{{ $profile->badge_text }}</div>
-            @endif
-            <h1>{!! nl2br(e($profile->name), false) !!}</h1>
-            @if ($profile->subtitle)
-                <div class="hero-subtitle">{{ $profile->subtitle }}</div>
-            @endif
-            @if ($profile->description)
-                <p class="hero-description">{{ $profile->description }}</p>
-            @endif
-            <div class="cta-buttons">
-                <a href="#contact" class="btn btn-primary">Get In Touch</a>
-                @if ($profile->linkedin_url)
-                    <a href="{{ $profile->linkedin_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">View LinkedIn</a>
+        <button type="button" class="theme-toggle" id="theme-toggle" aria-live="polite">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/></svg>
+            <span>Tema: Otomatis</span>
+        </button>
+    </aside>
+
+    <main>
+        @if ($profile->description)
+            <section class="section" id="tentang">
+                <div class="section-head"><h2>Tentang</h2></div>
+                <p class="lead-body">{{ $profile->description }}</p>
+            </section>
+        @endif
+
+        @if ($hasWork)
+            <section class="section" id="pengalaman">
+                <div class="section-head">
+                    <h2>Pengalaman kerja</h2>
+                    @if ($profile->experience_subtitle)<p>{{ $profile->experience_subtitle }}</p>@endif
+                </div>
+                @if ($experiences->isNotEmpty())
+                    <ol class="timeline">
+                        @foreach ($experiences as $experience)
+                            <li class="entry">
+                                <div class="entry-when">{{ $experience->period }}</div>
+                                <div class="entry-body">
+                                    <h3>{{ $experience->title }}</h3>
+                                    <div class="entry-org">{{ $experience->company }}@if ($experience->location)<span> · {{ $experience->location }}</span>@endif</div>
+                                    @if ($experience->description)<p class="entry-desc">{{ $experience->description }}</p>@endif
+                                </div>
+                            </li>
+                        @endforeach
+                    </ol>
                 @endif
-            </div>
-            @if ($stats->isNotEmpty())
-                <div class="stats-grid">
-                    @foreach ($stats as $stat)
-                        <div class="stat-card">
-                            <span class="stat-number">{{ $stat->number }}</span>
-                            <span class="stat-label">{{ $stat->label }}</span>
-                        </div>
+
+                @if ($organizations->isNotEmpty())
+                    <h3 class="subhead">Organisasi</h3>
+                    <ol class="timeline">
+                        @foreach ($organizations as $organization)
+                            <li class="entry">
+                                <div class="entry-when">{{ $organization->period }}</div>
+                                <div class="entry-body">
+                                    <h3>{{ $organization->title }}</h3>
+                                    <div class="entry-org">{{ $organization->organization }}</div>
+                                    @if ($organization->description)<p class="entry-desc">{{ $organization->description }}</p>@endif
+                                </div>
+                            </li>
+                        @endforeach
+                    </ol>
+                @endif
+            </section>
+        @endif
+
+        @if ($projects->isNotEmpty())
+            <section class="section" id="proyek">
+                <div class="section-head">
+                    <h2>Proyek</h2>
+                    @if ($profile->projects_subtitle)<p>{{ $profile->projects_subtitle }}</p>@endif
+                </div>
+                <div class="projects">
+                    @foreach ($projects as $project)
+                        <article class="project">
+                            @if ($project->imageUrl())
+                                <img class="project-media" src="{{ $project->imageUrl() }}" alt="Tampilan {{ $project->title }}" loading="lazy" width="640" height="400">
+                            @else
+                                <div class="project-placeholder" aria-hidden="true">{{ mb_substr($project->title, 0, 1) }}</div>
+                            @endif
+                            <div class="project-body">
+                                <h3>{{ $project->title }}</h3>
+                                @if ($project->role || $project->period)
+                                    <div class="project-meta">{{ collect([$project->role, $project->period])->filter()->implode(' · ') }}</div>
+                                @endif
+                                @if ($project->summary)<p class="project-summary">{{ $project->summary }}</p>@endif
+                                @if ($project->description)<p class="project-summary">{{ $project->description }}</p>@endif
+                                @if (! empty($project->tech_stack))
+                                    <ul class="tags" aria-label="Teknologi">
+                                        @foreach ($project->tech_stack as $tech)<li>{{ $tech }}</li>@endforeach
+                                    </ul>
+                                @endif
+                                @if ($project->url || $project->repo_url)
+                                    <div class="project-links">
+                                        @if ($project->url)<a href="{{ $project->url }}" target="_blank" rel="noopener noreferrer">Lihat situs ↗</a>@endif
+                                        @if ($project->repo_url)<a href="{{ $project->repo_url }}" target="_blank" rel="noopener noreferrer">Kode sumber ↗</a>@endif
+                                    </div>
+                                @endif
+                            </div>
+                        </article>
                     @endforeach
                 </div>
-            @endif
-        </section>
+            </section>
+        @endif
 
         @if ($skills->isNotEmpty())
-        <!-- Skills Section -->
-        <section id="skills">
-            <div class="section-header">
-                <div class="section-tag">// Expertise</div>
-                <h2 class="section-title">Technical Skills</h2>
-                @if ($profile->skills_subtitle)<p class="section-subtitle">{{ $profile->skills_subtitle }}</p>@endif
-            </div>
-            <div class="skills-grid">
-                @foreach ($skills as $skill)
-                    <div class="skill-card">
-                        <div class="skill-header">
-                            <div class="skill-name">{{ $skill->name }}</div>
-                            @if ($skill->level_label)<div class="skill-badge">{{ $skill->level_label }}</div>@endif
+            <section class="section" id="keahlian">
+                <div class="section-head">
+                    <h2>Keahlian</h2>
+                    @if ($profile->skills_subtitle)<p>{{ $profile->skills_subtitle }}</p>@endif
+                </div>
+                <ul class="skills">
+                    @foreach ($skills as $skill)
+                        @php $level = max(1, min(5, (int) round($skill->percentage / 20))); @endphp
+                        <li class="skill">
+                            <span class="skill-name">{{ $skill->name }}</span>
+                            <span class="meter" role="img" aria-label="Level {{ $level }} dari 5">
+                                @for ($i = 1; $i <= 5; $i++)<i class="{{ $i <= $level ? 'on' : '' }}"></i>@endfor
+                            </span>
+                            @if ($skill->level_label)<span class="skill-level">{{ $skill->level_label }}</span>@endif
+                        </li>
+                    @endforeach
+                </ul>
+            </section>
+        @endif
+
+        @if ($educations->isNotEmpty() || $certifications->isNotEmpty())
+            <section class="section" id="pendidikan">
+                <div class="section-head">
+                    <h2>Pendidikan &amp; sertifikasi</h2>
+                    @if ($profile->education_subtitle)<p>{{ $profile->education_subtitle }}</p>@endif
+                </div>
+                @foreach ($educations as $education)
+                    <div class="edu">
+                        <div>
+                            <h3>{{ $education->institution }}</h3>
+                            @if ($education->degree)<div class="edu-degree">{{ $education->degree }}</div>@endif
+                            <dl class="facts">
+                                @if ($education->period)<dt>Periode</dt><dd class="mono">{{ $education->period }}</dd>@endif
+                                @if ($education->faculty)<dt>Fakultas</dt><dd>{{ $education->faculty }}</dd>@endif
+                                @if ($education->location)<dt>Lokasi</dt><dd>{{ $education->location }}</dd>@endif
+                            </dl>
                         </div>
-                        <div class="skill-bar">
-                            <div class="skill-progress" style="width: {{ max(0, min(100, (int) $skill->percentage)) }}%"></div>
-                        </div>
+                        @if ($education->gpa !== null)
+                            <div class="gpa">
+                                <div class="gpa-value">{{ number_format((float) $education->gpa, 2) }}<span> / {{ number_format((float) $education->gpa_scale, 2) }}</span></div>
+                                <div class="gpa-label">IPK</div>
+                            </div>
+                        @endif
                     </div>
                 @endforeach
-            </div>
-        </section>
+
+                @if ($certifications->isNotEmpty())
+                    <h3 class="subhead">Sertifikasi</h3>
+                    @if ($profile->certification_subtitle)<p style="color:var(--muted);margin-top:-16px">{{ $profile->certification_subtitle }}</p>@endif
+                    <ul class="certs">
+                        @foreach ($certifications as $certification)
+                            <li class="cert">
+                                <span class="cert-name">
+                                    @if ($certification->credential_url)
+                                        <a href="{{ $certification->credential_url }}" target="_blank" rel="noopener noreferrer">{{ $certification->name }} ↗</a>
+                                    @else
+                                        {{ $certification->name }}
+                                    @endif
+                                </span>
+                                @if ($certification->score)<span class="cert-score">Skor <strong>{{ $certification->score }}</strong></span>@endif
+                                @if ($certification->issuer)<span class="cert-issuer">{{ $certification->issuer }}</span>@endif
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </section>
         @endif
 
-        @if ($experiences->isNotEmpty() || $organizations->isNotEmpty())
-        <!-- Experience Section -->
-        <section id="experience">
-            @if ($experiences->isNotEmpty())
-                <div class="section-header">
-                    <div class="section-tag">// Career Journey</div>
-                    <h2 class="section-title">Work Experience</h2>
-                    @if ($profile->experience_subtitle)<p class="section-subtitle">{{ $profile->experience_subtitle }}</p>@endif
+        <section class="section" id="kontak">
+            <div class="contact">
+                <div class="section-head">
+                    <h2>{{ $profile->contact_title ?: 'Kontak' }}</h2>
+                    @if ($profile->contact_subtitle)<p>{{ $profile->contact_subtitle }}</p>@endif
                 </div>
-                <div class="timeline">
-                    @foreach ($experiences as $experience)
-                        <div class="timeline-item">
-                            <div class="experience-card">
-                                <div class="experience-header">
-                                    <div>
-                                        <div class="experience-title">{{ $experience->title }}</div>
-                                        <div class="experience-company">{{ $experience->company }}</div>
-                                        @if ($experience->location)<div class="experience-location">📍 {{ $experience->location }}</div>@endif
-                                    </div>
-                                    @if ($experience->period)<div class="experience-period">{{ $experience->period }}</div>@endif
-                                </div>
-                                @if ($experience->description)<p class="experience-description">{{ $experience->description }}</p>@endif
-                            </div>
-                        </div>
-                    @endforeach
+                <div class="actions">
+                    @if ($profile->email)<a class="btn btn-primary" href="mailto:{{ $profile->email }}">Kirim email</a>@endif
+                    @if ($profile->whatsapp_number)<a class="btn" href="https://wa.me/{{ $profile->whatsapp_number }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>@endif
+                    @if ($profile->cvUrl())<a class="btn" href="{{ $profile->cvUrl() }}" download>Unduh CV</a>@endif
                 </div>
-            @endif
-
-            @if ($organizations->isNotEmpty())
-                <div class="section-header" @if ($experiences->isNotEmpty()) style="margin-top: 80px;" @endif>
-                    <div class="section-tag">// Leadership</div>
-                    <h2 class="section-title">Organization</h2>
-                    @if ($profile->organization_subtitle)<p class="section-subtitle">{{ $profile->organization_subtitle }}</p>@endif
-                </div>
-                <div class="timeline">
-                    @foreach ($organizations as $organization)
-                        <div class="timeline-item">
-                            <div class="experience-card">
-                                <div class="experience-header">
-                                    <div>
-                                        <div class="experience-title">{{ $organization->title }}</div>
-                                        <div class="experience-company">{{ $organization->organization }}</div>
-                                    </div>
-                                    @if ($organization->period)<div class="experience-period">{{ $organization->period }}</div>@endif
-                                </div>
-                                @if ($organization->description)<p class="experience-description">{{ $organization->description }}</p>@endif
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            @endif
-        </section>
-        @endif
-
-        @if ($educations->isNotEmpty())
-        <!-- Education Section -->
-        <section id="education">
-            <div class="section-header">
-                <div class="section-tag">// Academic Background</div>
-                <h2 class="section-title">Education</h2>
-                @if ($profile->education_subtitle)<p class="section-subtitle">{{ $profile->education_subtitle }}</p>@endif
-            </div>
-            @foreach ($educations as $education)
-                <div class="education-card" @if (! $loop->first) style="margin-top: 24px;" @endif>
-                    <div class="education-info">
-                        <h3>{{ $education->institution }}</h3>
-                        @if ($education->degree)<div class="education-degree">{{ $education->degree }}</div>@endif
-                        <div class="education-meta">
-                            @if ($education->period)<div>📅 <strong>Periode:</strong> {{ $education->period }}</div>@endif
-                            @if ($education->faculty)<div>🏛️ <strong>Fakultas:</strong> {{ $education->faculty }}</div>@endif
-                            @if ($education->location)<div>📍 <strong>Lokasi:</strong> {{ $education->location }}</div>@endif
-                        </div>
-                    </div>
-                    @if ($education->gpa !== null)
-                        <div class="gpa-container">
-                            <span class="gpa-number">{{ number_format((float) $education->gpa, 2) }}</span>
-                            <div class="gpa-label">GPA / {{ number_format((float) $education->gpa_scale, 2) }}</div>
-                        </div>
-                    @endif
-                </div>
-            @endforeach
-        </section>
-        @endif
-
-        @if ($certifications->isNotEmpty())
-        <!-- Certificates Section -->
-        <section id="certifications">
-            <div class="section-header">
-                <div class="section-tag">// Credentials</div>
-                <h2 class="section-title">Certifications</h2>
-                @if ($profile->certification_subtitle)<p class="section-subtitle">{{ $profile->certification_subtitle }}</p>@endif
-            </div>
-            <div class="certificates-grid">
-                @foreach ($certifications as $certification)
-                    <div class="certificate-card">
-                        @if ($certification->icon)<div class="certificate-icon">{{ $certification->icon }}</div>@endif
-                        <div class="certificate-name">
-                            @if ($certification->credential_url)
-                                <a href="{{ $certification->credential_url }}" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: none;">{{ $certification->name }}</a>
-                            @else
-                                {{ $certification->name }}
-                            @endif
-                        </div>
-                        @if ($certification->issuer)<div class="experience-location">{{ $certification->issuer }}</div>@endif
-                        @if ($certification->score)<div class="certificate-score">{{ $certification->score }}</div>@endif
-                    </div>
-                @endforeach
-            </div>
-        </section>
-        @endif
-
-        <!-- Contact Section -->
-        <section id="contact">
-            <div class="contact-section">
-                @if ($profile->contact_title)<h2 class="contact-title">{{ $profile->contact_title }}</h2>@endif
-                @if ($profile->contact_subtitle)<p class="contact-subtitle">{{ $profile->contact_subtitle }}</p>@endif
-                <div class="cta-buttons" style="justify-content: center;">
-                    @if ($profile->email)<a href="mailto:{{ $profile->email }}" class="btn btn-primary">Send Email</a>@endif
-                    @if ($profile->whatsapp_number)<a href="https://wa.me/{{ $profile->whatsapp_number }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">WhatsApp</a>@endif
-                </div>
-                <div class="contact-info">
-                    @if ($profile->email)
-                        <div class="contact-item">
-                            <div class="contact-icon">📧</div>
-                            <div class="contact-label">Email</div>
-                            <a href="mailto:{{ $profile->email }}">{{ $profile->email }}</a>
-                        </div>
-                    @endif
-                    @if ($profile->phone)
-                        <div class="contact-item">
-                            <div class="contact-icon">📱</div>
-                            <div class="contact-label">Phone</div>
-                            <a href="tel:{{ $profile->phoneHref() }}">{{ $profile->phone }}</a>
-                        </div>
-                    @endif
-                    @if ($profile->linkedin_url)
-                        <div class="contact-item">
-                            <div class="contact-icon">💼</div>
-                            <div class="contact-label">LinkedIn</div>
-                            <a href="{{ $profile->linkedin_url }}" target="_blank" rel="noopener noreferrer">Connect on LinkedIn</a>
-                        </div>
-                    @endif
-                </div>
+                <dl class="contact-list">
+                    @if ($profile->email)<div><dt>Email</dt><dd><a href="mailto:{{ $profile->email }}">{{ $profile->email }}</a></dd></div>@endif
+                    @if ($profile->phone)<div><dt>Telepon</dt><dd><a class="mono" href="tel:{{ $profile->phoneHref() }}">{{ $profile->phone }}</a></dd></div>@endif
+                    @if ($profile->linkedin_url)<div><dt>LinkedIn</dt><dd><a href="{{ $profile->linkedin_url }}" target="_blank" rel="noopener noreferrer">Lihat profil ↗</a></dd></div>@endif
+                    @if ($profile->address)<div><dt>Alamat</dt><dd>{{ $profile->address }}</dd></div>@endif
+                </dl>
             </div>
         </section>
 
-        <!-- Footer -->
         <footer>
-            <p>&copy; {{ now()->year }} {{ str_replace("\n", ' ', $profile->name) }}. All Rights Reserved.</p>
-            @if ($profile->address)
-                <p style="margin-top: 12px; font-size: 14px;">📍 {{ $profile->address }}</p>
-            @endif
+            <span>&copy; {{ now()->year }} {{ $name }}</span>
+            @if ($profile->subtitle)<span>{{ $profile->subtitle }}</span>@endif
         </footer>
-    </div>
+    </main>
+</div>
 
-    @verbatim
-    <script>
-        // Smooth scrolling
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
+<script>
+    (function () {
+        // Tombol tema: Otomatis -> Terang -> Gelap
+        var root = document.documentElement;
+        var btn = document.getElementById('theme-toggle');
+        var label = btn.querySelector('span');
+        var names = { system: 'Otomatis', light: 'Terang', dark: 'Gelap' };
+        var order = ['system', 'light', 'dark'];
+        function current() { return root.dataset.theme || 'system'; }
+        function render() { label.textContent = 'Tema: ' + names[current()]; }
+        btn.addEventListener('click', function () {
+            var next = order[(order.indexOf(current()) + 1) % order.length];
+            if (next === 'system') { delete root.dataset.theme; } else { root.dataset.theme = next; }
+            try { next === 'system' ? localStorage.removeItem('theme') : localStorage.setItem('theme', next); } catch (e) {}
+            render();
+        });
+        render();
+
+        // Tandai bagian yang sedang dibaca di navigasi
+        var links = document.querySelectorAll('.toc a');
+        if (!('IntersectionObserver' in window) || !links.length) return;
+        var map = {};
+        links.forEach(function (a) { map[a.dataset.section] = a; });
+        var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+                if (!e.isIntersecting) return;
+                links.forEach(function (a) { a.classList.remove('is-active'); });
+                if (map[e.target.id]) map[e.target.id].classList.add('is-active');
             });
-        });
-
-        // Scroll animations
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
-                }
-            });
-        }, observerOptions);
-
-        document.querySelectorAll('section').forEach(section => {
-            section.style.opacity = '0';
-            section.style.transform = 'translateY(30px)';
-            section.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-            observer.observe(section);
-        });
-
-        // Parallax effect for gradient orbs
-        document.addEventListener('mousemove', (e) => {
-            const orb1 = document.querySelector('.orb-1');
-            const orb2 = document.querySelector('.orb-2');
-            
-            const x = e.clientX / window.innerWidth;
-            const y = e.clientY / window.innerHeight;
-            
-            orb1.style.transform = `translate(${x * 50}px, ${y * 50}px)`;
-            orb2.style.transform = `translate(${-x * 30}px, ${-y * 30}px)`;
-        });
-    </script>
-    @endverbatim
+        }, { rootMargin: '-35% 0px -60% 0px' });
+        document.querySelectorAll('main .section[id]').forEach(function (s) { io.observe(s); });
+    })();
+</script>
 </body>
 </html>

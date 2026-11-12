@@ -7,6 +7,7 @@ use App\Models\Education;
 use App\Models\Experience;
 use App\Models\Organization;
 use App\Models\Profile;
+use App\Models\Project;
 use App\Models\Skill;
 use App\Models\Stat;
 use Illuminate\Contracts\View\View;
@@ -21,6 +22,7 @@ class PortfolioController extends Controller
         return view('portfolio', [
             'profile' => Profile::current(),
             'stats' => Stat::published()->get(),
+            'projects' => Project::published()->get(),
             'skills' => Skill::published()->get(),
             'experiences' => Experience::published()->get(),
             'organizations' => Organization::published()->get(),

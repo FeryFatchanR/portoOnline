@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Models\Profile;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -62,6 +63,30 @@ class EditPortfolioProfile extends Page
                         TextInput::make('subtitle')->label('Subjudul')->maxLength(255),
                         Textarea::make('description')->label('Deskripsi singkat')->rows(4)->maxLength(2000)->columnSpanFull(),
                     ]),
+                Section::make('Foto & CV')
+                    ->columns(2)
+                    ->schema([
+                        FileUpload::make('photo_path')
+                            ->label('Foto profil')
+                            ->image()
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                            ->maxSize(2048)
+                            ->disk('public')
+                            ->directory('profile')
+                            ->visibility('public')
+                            ->imageEditor()
+                            ->imageEditorAspectRatioOptions(['4:5', '1:1'])
+                            ->helperText('JPG, PNG, atau WebP, maks. 2 MB. Potret 4:5 paling pas.'),
+                        FileUpload::make('cv_path')
+                            ->label('File CV')
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->maxSize(5120)
+                            ->disk('public')
+                            ->directory('cv')
+                            ->visibility('public')
+                            ->downloadable()
+                            ->helperText('PDF, maks. 5 MB. Pengunjung bisa mengunduhnya dari tombol "Unduh CV".'),
+                    ]),
                 Section::make('Kontak')
                     ->columns(2)
                     ->schema([
@@ -82,6 +107,7 @@ class EditPortfolioProfile extends Page
                     ->schema([
                         TextInput::make('skills_subtitle')->label('Skills')->maxLength(255),
                         TextInput::make('experience_subtitle')->label('Pengalaman kerja')->maxLength(255),
+                        TextInput::make('projects_subtitle')->label('Proyek')->maxLength(255),
                         TextInput::make('organization_subtitle')->label('Organisasi')->maxLength(255),
                         TextInput::make('education_subtitle')->label('Pendidikan')->maxLength(255),
                         TextInput::make('certification_subtitle')->label('Sertifikasi')->maxLength(255),

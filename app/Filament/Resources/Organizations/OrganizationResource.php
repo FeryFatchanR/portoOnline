@@ -23,7 +23,7 @@ class OrganizationResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Konten Portfolio';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 6;
 
     protected static ?string $modelLabel = 'Organisasi';
 
