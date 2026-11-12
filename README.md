@@ -32,7 +32,11 @@ php artisan serve
 
 Buka http://localhost:8000 (portfolio) dan http://localhost:8000/admin (admin).
 
-## Deploy ke produksi
+## Deploy otomatis (push dari VS Code)
+
+Setiap push ke `main` menjalankan test lalu deploy otomatis ke VPS lewat GitHub Actions. Panduan setup lengkap (VPS, Nginx, SSH key, GitHub Secrets): **[deploy/README.md](deploy/README.md)**.
+
+## Deploy manual
 
 1. **Backup dulu** jika sudah ada data: `mysqldump -u <USER> -p <DB> > backup-$(date +%F).sql`
 2. Ambil kode dan pasang dependency:
