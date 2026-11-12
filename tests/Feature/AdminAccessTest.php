@@ -33,7 +33,7 @@ class AdminAccessTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
 
-        foreach (['/admin', '/admin/profile', '/admin/stats', '/admin/skills', '/admin/projects', '/admin/experiences',
+        foreach (['/admin', '/admin/profile', '/admin/stats', '/admin/skills', '/admin/projects', '/admin/services', '/admin/team-members', '/admin/experiences',
             '/admin/organizations', '/admin/education', '/admin/certifications'] as $url) {
             $this->actingAs($admin)->get($url)->assertOk();
         }

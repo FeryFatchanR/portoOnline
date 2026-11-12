@@ -21,9 +21,9 @@ class SkillResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSparkles;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Konten Portfolio';
+    protected static string|UnitEnum|null $navigationGroup = 'Konten Website';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 7;
 
     protected static ?string $modelLabel = 'Skill';
 

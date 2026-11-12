@@ -21,9 +21,9 @@ class OrganizationResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Konten Portfolio';
+    protected static string|UnitEnum|null $navigationGroup = 'Konten Website';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 8;
 
     protected static ?string $modelLabel = 'Organisasi';
 

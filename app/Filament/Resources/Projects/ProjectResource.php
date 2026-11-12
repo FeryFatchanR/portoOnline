@@ -21,7 +21,7 @@ class ProjectResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCodeBracketSquare;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Konten Portfolio';
+    protected static string|UnitEnum|null $navigationGroup = 'Konten Website';
 
     protected static ?int $navigationSort = 4;
 
